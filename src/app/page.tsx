@@ -64,7 +64,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
         {/* ── Hero ─────────────────────────────────────────────── */}
-        {/* <div className="mb-12 pt-4">
+        <div className="mb-12 pt-4">
           <h1 className="text-3xl sm:text-4xl font-bold text-primary leading-tight mb-2">
             {UI.hero.title}{" "}
             <span className="text-primary">{UI.hero.subtitle}</span>
@@ -72,7 +72,7 @@ export default function Home() {
           <p className="text-muted-foreground text-sm sm:text-base max-w-2xl">
             {UI.hero.description}
           </p>
-        </div> */}
+        </div>
 
         {/* ── Main 2-column layout ───────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
