@@ -8,21 +8,42 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { AlertCircle } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { AlertCircle, HelpCircle } from "lucide-react"
 import { calcAll } from "@/lib/taxEngine"
 import { ACTIVITY_COEFFICIENTS } from "@/lib/brackets"
+import { UI, TOOLTIPS } from "@/lib/constants"
 import { BreakdownBar } from "@/components/BreakdownBar"
 import { ComparisonTable } from "@/components/ComparisonTable"
 import { BracketVisualizer } from "@/components/BracketVisualizer"
 import { ReverseCalculator } from "@/components/ReverseCalculator"
+import { ExchangeRateToast } from "@/components/ExchangeRateToast"
 
 const fmt = (n: number) =>
-  n.toLocaleString("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })
+  n.toLocaleString("uk-UA", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })
 
 const fmtDec = (n: number) =>
-  n.toLocaleString("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 2 })
+  n.toLocaleString("uk-UA", { style: "currency", currency: "EUR", maximumFractionDigits: 2 })
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
+
+function TooltipIcon({ text }: { text: string }) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger>
+          <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs text-sm">{text}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
 
 export default function Home() {
   const [gross, setGross] = useState(80000)
@@ -42,11 +63,17 @@ export default function Home() {
       {/* ── Header ───────────────────────────────────────────── */}
       <header className="glass border-b border-border/30 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <span className="text-xl font-bold text-primary">Sovereign Ledger</span>
+          <span className="text-xl font-bold text-primary">{UI.header.title}</span>
           <nav className="hidden sm:flex items-center gap-8 text-sm font-medium">
-            <a href="#about" className="text-foreground/70 hover:text-foreground">About</a>
-            <a href="#contact" className="text-foreground/70 hover:text-foreground">Contact</a>
-            <a href="#" className="text-primary font-semibold">PT/EN</a>
+            <a href="#about" className="text-foreground/70 hover:text-foreground">
+              {UI.header.nav.about}
+            </a>
+            <a href="#contact" className="text-foreground/70 hover:text-foreground">
+              {UI.header.nav.contact}
+            </a>
+            <a href="#" className="text-primary font-semibold">
+              {UI.header.nav.language}
+            </a>
           </nav>
           <button className="text-foreground/60 hover:text-foreground">🌐</button>
         </div>
@@ -57,12 +84,11 @@ export default function Home() {
         {/* ── Hero ─────────────────────────────────────────────── */}
         <div className="mb-12">
           <h1 className="text-4xl sm:text-5xl font-bold text-primary leading-tight mb-3">
-            Calculadora de Imposto Sobre{" "}
-            <span className="text-primary">o Rendimento 2025</span>
+            {UI.hero.title}{" "}
+            <span className="text-primary">{UI.hero.subtitle}</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-2xl">
-            Simule seu imposto de renda individual (IRS) e contribuições de segurança social com precisão.
-            Modos Freelancer e NHR inclusos.
+            {UI.hero.description}
           </p>
         </div>
 
@@ -76,9 +102,12 @@ export default function Home() {
 
                 {/* Gross input */}
                 <div className="space-y-3">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
-                    Rendimento Bruto Anual (€)
-                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
+                      {UI.inputs.grossLabel}
+                    </Label>
+                    <TooltipIcon text={TOOLTIPS.grossIncome} />
+                  </div>
                   <input
                     type="number"
                     value={gross}
@@ -102,9 +131,12 @@ export default function Home() {
 
                 {/* Activity year */}
                 <div className="space-y-2.5">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
-                    Ano de Atividade
-                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
+                      {UI.inputs.yearLabel}
+                    </Label>
+                    <TooltipIcon text={TOOLTIPS.activityYear} />
+                  </div>
                   <div className="flex gap-2">
                     {([1, 2, 3] as const).map((y) => (
                       <button
@@ -116,7 +148,7 @@ export default function Home() {
                             : "bg-muted border-border/40 text-foreground hover:bg-muted/80"
                         }`}
                       >
-                        {y === 3 ? "3+" : y} ano
+                        {y === 3 ? "3+" : y} {y === 1 ? "рік" : "рік"}
                       </button>
                     ))}
                   </div>
@@ -125,16 +157,23 @@ export default function Home() {
                 {/* NHR */}
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/40">
                   <Switch id="nhr" checked={hasNHR} onCheckedChange={setHasNHR} />
-                  <Label htmlFor="nhr" className="cursor-pointer text-sm font-medium flex-1">
-                    NHR (20% flat)
-                  </Label>
+                  <div className="flex-1 flex items-center gap-2">
+                    <Label htmlFor="nhr" className="cursor-pointer text-sm font-medium">
+                      {UI.inputs.nhrLabel}
+                      <span className="text-xs text-muted-foreground ml-1">({UI.inputs.nhrDescription})</span>
+                    </Label>
+                    <TooltipIcon text={TOOLTIPS.nhr} />
+                  </div>
                 </div>
 
                 {/* Activity type */}
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
-                    Tipo de Atividade
-                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
+                      {UI.inputs.activityLabel}
+                    </Label>
+                    <TooltipIcon text={TOOLTIPS.activityYear} />
+                  </div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {ACTIVITY_COEFFICIENTS.map((a, i) => (
                       <button
@@ -157,11 +196,13 @@ export default function Home() {
 
                 {/* Info box */}
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1.5">
-                  <p className="text-xs font-bold text-primary uppercase tracking-wider">Guia Rápido</p>
+                  <p className="text-xs font-bold text-primary uppercase tracking-wider">
+                    {UI.inputs.guideLabel}
+                  </p>
                   <ul className="text-[11px] text-muted-foreground space-y-1">
-                    <li>• IRS: Imposto sobre rendimento (13–48%)</li>
-                    <li>• NHR: Regime especial não-habitual (20%)</li>
-                    <li>• Seg. Social: Contribuição obrigatória (21.4%)</li>
+                    {UI.inputs.guide.map((item, i) => (
+                      <li key={i}>• {item}</li>
+                    ))}
                   </ul>
                 </div>
 
@@ -179,24 +220,34 @@ export default function Home() {
                   {/* Accent bar */}
                   <div className="w-1.5 bg-primary" />
 
-                  <div className="flex-1 p-6">
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">
-                      Rendimento Líquido Mensal
-                    </p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-5xl font-bold text-primary">
-                        {fmtDec(mainResult)}
-                      </span>
-                      <span className="text-lg text-muted-foreground">/mês</span>
+                  <div className="flex-1 p-6 grid grid-cols-2 gap-6">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
+                          {UI.results.monthlyNetTitle}
+                        </p>
+                        <TooltipIcon text={TOOLTIPS.netIncome} />
+                      </div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-bold text-primary">
+                          {fmtDec(mainResult)}
+                        </span>
+                        <span className="text-sm text-muted-foreground">/{UI.results.monthLabel}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {UI.results.annualLabel}: {fmt(displayMode === "nhr" ? result.netNHR : result.netFreelancer)}
+                      </p>
+                      {displayMode === "nhr" && (
+                        <Badge className="mt-3 bg-amber-500 text-white text-xs">
+                          {UI.results.nhrBadge}
+                        </Badge>
+                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Anual: {fmt(displayMode === "nhr" ? result.netNHR : result.netFreelancer)}
-                    </p>
-                    {displayMode === "nhr" && (
-                      <Badge className="mt-3 bg-amber-500 text-white text-xs">
-                        NHR Mode
-                      </Badge>
-                    )}
+
+                    {/* Exchange rate toast */}
+                    <div className="border-l border-border/40 pl-6">
+                      <ExchangeRateToast amountEUR={mainResult} />
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -205,17 +256,41 @@ export default function Home() {
             {/* Detalhamento */}
             <Card className="shadow-lg border-border/60">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Detalhamento Mensal (€/mês)</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base">
+                    {UI.results.detailsTitle}
+                  </CardTitle>
+                  <TooltipIcon text={TOOLTIPS.taxBurden} />
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
                   {[
-                    { label: "Rendimento Bruto", value: gross / 12, color: "text-foreground" },
-                    { label: "IRS", value: (displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12, color: "text-red-600 dark:text-red-400" },
-                    { label: "Seg. Social", value: result.socialSecurity / 12, color: "text-amber-600 dark:text-amber-400" },
-                    { label: "Solidariedade", value: (displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12, color: "text-orange-500" },
+                    {
+                      label: UI.results.grossIncome,
+                      value: gross / 12,
+                      color: "text-foreground",
+                    },
+                    {
+                      label: UI.results.pdfoPD,
+                      value: (displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12,
+                      color: "text-red-600 dark:text-red-400",
+                    },
+                    {
+                      label: UI.results.socialContribution,
+                      value: result.socialSecurity / 12,
+                      color: "text-amber-600 dark:text-amber-400",
+                    },
+                    {
+                      label: UI.results.solidarityTax,
+                      value: (displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12,
+                      color: "text-orange-500",
+                    },
                   ].map((row) => (
-                    <div key={row.label} className="flex justify-between items-center py-2 border-b border-border/40 last:border-0">
+                    <div
+                      key={row.label}
+                      className="flex justify-between items-center py-2 border-b border-border/40 last:border-0"
+                    >
                       <span className="text-sm text-muted-foreground">{row.label}</span>
                       <span className={`font-semibold tabular-nums ${row.color}`}>
                         {fmtDec(row.value)}
@@ -224,7 +299,9 @@ export default function Home() {
                   ))}
                 </div>
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex justify-between items-center">
-                  <span className="font-bold text-primary uppercase text-xs tracking-wider">Líquido Total</span>
+                  <span className="font-bold text-primary uppercase text-xs tracking-wider">
+                    {UI.results.totalNet}
+                  </span>
                   <span className="text-2xl font-bold text-primary">{fmtDec(mainResult)}</span>
                 </div>
               </CardContent>
@@ -233,77 +310,82 @@ export default function Home() {
             {/* Carga Fiscal (Tax burden bar) */}
             <Card className="shadow-lg border-border/60">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Carga Fiscal Anual</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base">
+                    {UI.results.taxBurdenTitle}
+                  </CardTitle>
+                  <TooltipIcon text={TOOLTIPS.taxBurden} />
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Distribuição: {fmt(totalTaxes + result.socialSecurity)}</span>
+                    <span className="text-muted-foreground">
+                      {UI.results.distribution}: {fmt(totalTaxes + result.socialSecurity)}
+                    </span>
                     <span className="text-muted-foreground">
                       {pct((totalTaxes + result.socialSecurity) / gross)}
                     </span>
                   </div>
                   <div className="flex h-8 gap-0.5 rounded-lg overflow-hidden bg-muted">
                     <div
+                      className="bg-emerald-500"
+                      style={{
+                        width: `${((displayMode === "nhr" ? result.netNHR : result.netFreelancer) / gross) * 100}%`,
+                      }}
+                      title={`${UI.results.totalNet}: ${fmtDec((displayMode === "nhr" ? result.netNHR : result.netFreelancer) / 12)}`}
+                    />
+                    <div
                       className="bg-primary"
                       style={{
-                        width: `${(result.socialSecurity / (totalTaxes + result.socialSecurity)) * 100}%`,
+                        width: `${(result.socialSecurity / gross) * 100}%`,
                       }}
-                      title={`Seg. Social: ${fmtDec(result.socialSecurity / 12)}`}
+                      title={`${UI.results.socialContribution}: ${fmtDec(result.socialSecurity / 12)}`}
                     />
                     <div
                       className="bg-red-500"
                       style={{
-                        width: `${((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / (totalTaxes + result.socialSecurity)) * 100}%`,
+                        width: `${((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / gross) * 100}%`,
                       }}
-                      title={`IRS: ${fmtDec((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12)}`}
+                      title={`${UI.results.pdfoPD}: ${fmtDec((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12)}`}
                     />
                     <div
                       className="bg-orange-500"
                       style={{
-                        width: `${((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / (totalTaxes + result.socialSecurity)) * 100}%`,
+                        width: `${((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / gross) * 100}%`,
                       }}
-                      title={`Solidariedade: ${fmtDec((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12)}`}
-                    />
-                    <div
-                      className="bg-emerald-500"
-                      style={{
-                        width: `${(result.netFreelancer / (gross)) * 100}%`,
-                      }}
-                      title={`Líquido: ${fmtDec((displayMode === "nhr" ? result.netNHR : result.netFreelancer) / 12)}`}
+                      title={`${UI.results.solidarityTax}: ${fmtDec((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12)}`}
                     />
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                      <span>Líquido</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 bg-primary rounded-full" />
-                      <span>Seg. Social</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 bg-red-500 rounded-full" />
-                      <span>IRS</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                      <span>Solidariedade</span>
-                    </div>
+                    {UI.results.legend.map((item) => (
+                      <div key={item.label} className="flex items-center gap-1.5">
+                        <div
+                          className={`w-2 h-2 rounded-full bg-${item.color}-500`}
+                        />
+                        <span>{item.label}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Warning if high tax bracket */}
-            {(displayMode === "nhr" ? result.effectiveRateNHR : result.effectiveRateFL) > 0.35 && (
+            {(displayMode === "nhr" ? result.effectiveRateNHR : result.effectiveRateFL) >
+              0.35 && (
               <div className="flex gap-3 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg">
                 <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-semibold text-red-900 dark:text-red-400 mb-1">Aviso de Escalão</p>
+                  <p className="font-semibold text-red-900 dark:text-red-400 mb-1">
+                    {UI.results.warningTitle}
+                  </p>
                   <p className="text-red-800 dark:text-red-300">
-                    Seu rendimento está no {Math.round((displayMode === "nhr" ? result.effectiveRateNHR : result.effectiveRateFL) * 100)}º escalão de IRS.
-                    Considere deduções ou otimizações fiscais.
+                    {UI.results.warningText(
+                      displayMode === "nhr"
+                        ? result.effectiveRateNHR
+                        : result.effectiveRateFL
+                    )}
                   </p>
                 </div>
               </div>
@@ -315,16 +397,26 @@ export default function Home() {
         {/* ── Detailed Tabs ─────────────────────────────────── */}
         <Tabs defaultValue="breakdown" className="mb-12">
           <TabsList className="bg-muted border border-border/40">
-            <TabsTrigger value="breakdown" className="text-xs sm:text-sm">Distribuição</TabsTrigger>
-            <TabsTrigger value="reverse" className="text-xs sm:text-sm">Cálculo Reverso</TabsTrigger>
-            <TabsTrigger value="years" className="text-xs sm:text-sm">Por Ano</TabsTrigger>
-            <TabsTrigger value="brackets" className="text-xs sm:text-sm">Escala IRS</TabsTrigger>
+            <TabsTrigger value="breakdown" className="text-xs sm:text-sm">
+              {UI.tabs.distribution}
+            </TabsTrigger>
+            <TabsTrigger value="reverse" className="text-xs sm:text-sm">
+              {UI.tabs.reverse}
+            </TabsTrigger>
+            <TabsTrigger value="years" className="text-xs sm:text-sm">
+              {UI.tabs.years}
+            </TabsTrigger>
+            <TabsTrigger value="brackets" className="text-xs sm:text-sm">
+              {UI.tabs.brackets}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="breakdown" className="mt-4">
             <Card className="shadow-lg border-border/60">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Distribuição de Rendimento</CardTitle>
+                <CardTitle className="text-sm">
+                  {UI.tabsContent.distributionTitle}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <BreakdownBar result={result} mode={displayMode} />
@@ -335,11 +427,19 @@ export default function Home() {
           <TabsContent value="reverse" className="mt-4">
             <Card className="shadow-lg border-border/60">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Cálculo Reverso</CardTitle>
-                <CardDescription className="text-xs">Qual o bruto necessário para um líquido-alvo?</CardDescription>
+                <CardTitle className="text-sm">
+                  {UI.tabsContent.reverseTitle}
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  {UI.tabsContent.reverseHelper}
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <ReverseCalculator activityYear={activityYear} hasNHR={hasNHR} coefficient={coefficient} />
+                <ReverseCalculator
+                  activityYear={activityYear}
+                  hasNHR={hasNHR}
+                  coefficient={coefficient}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -347,10 +447,19 @@ export default function Home() {
           <TabsContent value="years" className="mt-4">
             <Card className="shadow-lg border-border/60">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Comparação Por Anos</CardTitle>
+                <CardTitle className="text-sm">
+                  {UI.tabsContent.yearsTitle}
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  {UI.tabsContent.yearsHelper}
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <ComparisonTable grossAnnual={gross} hasNHR={hasNHR} coefficient={coefficient} />
+                <ComparisonTable
+                  grossAnnual={gross}
+                  hasNHR={hasNHR}
+                  coefficient={coefficient}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -358,7 +467,12 @@ export default function Home() {
           <TabsContent value="brackets" className="mt-4">
             <Card className="shadow-lg border-border/60">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Escala IRS 2025</CardTitle>
+                <CardTitle className="text-sm">
+                  {UI.tabsContent.bracketsTitle}
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  {UI.tabsContent.bracketsHelper}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <BracketVisualizer taxableIncome={result.taxableBaseReduced} />
@@ -369,13 +483,13 @@ export default function Home() {
 
         {/* ── Footer ───────────────────────────────────────────── */}
         <footer className="text-center py-8 border-t border-border/20 text-xs text-muted-foreground">
-          <p>
-            © 2025 Sovereign Ledger. Todos os direitos reservados. Conformidade com Autoridade Tributária Portuguesa.
-          </p>
+          <p>{UI.footer.copyright}</p>
           <div className="flex justify-center gap-4 mt-2 text-[11px]">
-            <a href="#" className="hover:text-foreground">Aviso Legal</a>
-            <a href="#" className="hover:text-foreground">Política de Privacidade</a>
-            <a href="#" className="hover:text-foreground">Código Tributário</a>
+            {UI.footer.links.map((link) => (
+              <a key={link.label} href={link.href} className="hover:text-foreground">
+                {link.label}
+              </a>
+            ))}
           </div>
         </footer>
 
