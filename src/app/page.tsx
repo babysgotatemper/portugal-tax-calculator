@@ -253,16 +253,16 @@ export default function Home() {
 
             {/* Detalhamento */}
             <Card className="shadow-lg border-border/60">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-base">
+                  <CardTitle className="text-sm">
                     {UI.results.detailsTitle}
                   </CardTitle>
                   <TooltipIcon text={TOOLTIPS.taxBurden} />
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
+              <CardContent className="space-y-1.5">
+                <div className="space-y-1">
                   {[
                     {
                       label: UI.results.grossIncome,
@@ -287,20 +287,20 @@ export default function Home() {
                   ].map((row) => (
                     <div
                       key={row.label}
-                      className="flex justify-between items-center py-2 border-b border-border/40 last:border-0"
+                      className="flex justify-between items-center py-1 border-b border-border/40 last:border-0"
                     >
-                      <span className="text-sm text-muted-foreground">{row.label}</span>
-                      <div className={`${row.color}`}>
+                      <span className="text-xs text-muted-foreground">{row.label}</span>
+                      <div className={`${row.color} text-xs`}>
                         <PriceWithUSD amountEUR={row.value} />
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex justify-between items-center">
-                  <span className="font-bold text-primary uppercase text-xs tracking-wider">
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-2 flex justify-between items-center">
+                  <span className="font-bold text-primary uppercase text-[10px] tracking-wider">
                     {UI.results.totalNet}
                   </span>
-                  <div className="text-primary">
+                  <div className="text-primary text-xs">
                     <PriceWithUSD amountEUR={mainResult} showFull={true} />
                   </div>
                 </div>
