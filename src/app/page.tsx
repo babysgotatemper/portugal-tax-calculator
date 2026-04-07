@@ -22,6 +22,7 @@ import { BreakdownBar } from "@/components/BreakdownBar"
 import { ComparisonTable } from "@/components/ComparisonTable"
 import { BracketVisualizer } from "@/components/BracketVisualizer"
 import { ReverseCalculator } from "@/components/ReverseCalculator"
+import { useExchangeRate } from "@/components/ExchangeRateToast"
 import { PriceWithUSD } from "@/components/PriceWithUSD"
 
 const fmtDec = (n: number) =>
@@ -53,6 +54,9 @@ export default function Home() {
   const displayMode: "freelancer" | "nhr" = result.bestMode
   const mainResult = displayMode === "nhr" ? result.netMonthlyNHR : result.netMonthlyFL
   const totalTaxes = displayMode === "nhr" ? result.totalTaxNHR : result.totalTaxFL
+
+  // Get live exchange rate for consistent conversion
+  const { rate } = useExchangeRate()
 
   return (
     <div className="gradient-hero min-h-screen">
@@ -215,7 +219,7 @@ export default function Home() {
                           {(mainResult).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          ≈ ${(mainResult * 1.1).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
+                          ≈ ${(mainResult * rate).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
                         </div>
                       </div>
 
