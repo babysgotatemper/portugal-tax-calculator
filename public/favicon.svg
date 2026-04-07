@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Background circle: forest green -->
+  <circle cx="16" cy="16" r="16" fill="#2d6a4f"/>
+  <!-- Gold/amber accent arc (top-right) -->
+  <path d="M16 0 A16 16 0 0 1 32 16 L28 16 A12 12 0 0 0 16 4 Z" fill="#e9c46a"/>
+  <!-- White "€" symbol centered -->
+  <text x="16" y="21" text-anchor="middle" font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#ffffff">€</text>
+</svg>
