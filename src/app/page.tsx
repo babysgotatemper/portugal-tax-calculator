@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { AlertCircle } from "lucide-react"
 import { calcAll } from "@/lib/taxEngine"
 import { ACTIVITY_COEFFICIENTS } from "@/lib/brackets"
 import { BreakdownBar } from "@/components/BreakdownBar"
@@ -17,6 +18,9 @@ import { ReverseCalculator } from "@/components/ReverseCalculator"
 
 const fmt = (n: number) =>
   n.toLocaleString("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })
+
+const fmtDec = (n: number) =>
+  n.toLocaleString("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 2 })
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
 
@@ -29,311 +33,321 @@ export default function Home() {
   const coefficient = ACTIVITY_COEFFICIENTS[coeffIdx].value
   const result = calcAll({ grossAnnual: gross, activityYear, hasNHR, coefficient })
   const displayMode: "freelancer" | "nhr" = result.bestMode
+  const mainResult = displayMode === "nhr" ? result.netMonthlyNHR : result.netMonthlyFL
+  const totalTaxes = displayMode === "nhr" ? result.totalTaxNHR : result.totalTaxFL
 
   return (
     <div className="gradient-hero min-h-screen">
 
       {/* ── Header ───────────────────────────────────────────── */}
-      <header className="glass border-b border-border/50 sticky top-0 z-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="text-2xl leading-none">🇵🇹</span>
-            <div className="leading-tight">
-              <span className="font-bold text-sm tracking-tight">PT Tax Calc</span>
-              <span className="hidden sm:inline text-muted-foreground text-xs ml-2">IRS 2025</span>
-            </div>
-          </div>
-
-          <div className="ml-auto flex items-center gap-1.5">
-            <Badge
-              variant="outline"
-              className="text-[10px] border-primary/30 text-primary bg-primary/5 hidden sm:flex"
-            >
-              CIRS 2025
-            </Badge>
-            <Badge
-              variant="outline"
-              className="text-[10px] text-muted-foreground hidden sm:flex"
-            >
-              Not financial advice
-            </Badge>
-          </div>
+      <header className="glass border-b border-border/30 sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <span className="text-xl font-bold text-primary">Sovereign Ledger</span>
+          <nav className="hidden sm:flex items-center gap-8 text-sm font-medium">
+            <a href="#about" className="text-foreground/70 hover:text-foreground">About</a>
+            <a href="#contact" className="text-foreground/70 hover:text-foreground">Contact</a>
+            <a href="#" className="text-primary font-semibold">PT/EN</a>
+          </nav>
+          <button className="text-foreground/60 hover:text-foreground">🌐</button>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
         {/* ── Hero ─────────────────────────────────────────────── */}
-        <div className="text-center space-y-2 pt-2 pb-4">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Калькулятор податків{" "}
-            <span className="text-primary">Португалії</span>
+        <div className="mb-12">
+          <h1 className="text-4xl sm:text-5xl font-bold text-primary leading-tight mb-3">
+            Calculadora de Imposto Sobre{" "}
+            <span className="text-primary">o Rendimento 2025</span>
           </h1>
-          <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto">
-            Freelancer та NHR режими — IRS, Segurança Social, ефективна ставка
+          <p className="text-muted-foreground text-base max-w-2xl">
+            Simule seu imposto de renda individual (IRS) e contribuições de segurança social com precisão.
+            Modos Freelancer e NHR inclusos.
           </p>
         </div>
 
-        {/* ── Inputs ───────────────────────────────────────────── */}
-        <Card className="shadow-sm border-border/60">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Параметри
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-7 pt-2">
+        {/* ── Main 2-column layout ───────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
 
-            {/* Gross slider */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-baseline">
-                <Label className="text-sm font-medium">Gross дохід / рік</Label>
-                <span className="text-3xl font-bold tabular-nums text-primary">{fmt(gross)}</span>
-              </div>
-              <Slider
-                min={10000}
-                max={300000}
-                step={1000}
-                value={[gross]}
-                onValueChange={(v) => setGross(Array.isArray(v) ? v[0] : v)}
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>10 000 €</span>
-                <span>300 000 €</span>
-              </div>
-            </div>
+          {/* ── LEFT: Inputs ─────────────────────────────────── */}
+          <div className="lg:col-span-1">
+            <Card className="shadow-lg border-border/60 sticky top-20">
+              <CardContent className="pt-6 space-y-5">
 
-            <Separator />
-
-            {/* Activity year + NHR */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-                  Рік активності
-                </Label>
-                <div className="flex gap-2">
-                  {([1, 2, 3] as const).map((y) => (
-                    <button
-                      key={y}
-                      onClick={() => setActivityYear(y)}
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${
-                        activityYear === y
-                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                          : "border-border bg-background hover:bg-muted text-foreground"
-                      }`}
-                    >
-                      {y === 3 ? "3+" : y} рік
-                    </button>
-                  ))}
+                {/* Gross input */}
+                <div className="space-y-3">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
+                    Rendimento Bruto Anual (€)
+                  </Label>
+                  <input
+                    type="number"
+                    value={gross}
+                    onChange={(e) => setGross(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-muted border border-border/40 rounded-lg text-lg font-semibold text-foreground"
+                  />
+                  <Slider
+                    min={10000}
+                    max={300000}
+                    step={1000}
+                    value={[gross]}
+                    onValueChange={(v) => setGross(Array.isArray(v) ? v[0] : v)}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>€10k</span>
+                    <span>€300k</span>
+                  </div>
                 </div>
-                {activityYear === 1 && (
-                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                    ✓ Seg. Social = 0 · IRS знижка 50%
-                  </p>
-                )}
-                {activityYear === 2 && (
-                  <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                    IRS знижка 25%
-                  </p>
-                )}
-              </div>
 
-              <div className="hidden sm:block w-px h-10 bg-border" />
+                <Separator />
 
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-                  NHR статус
-                </Label>
-                <div className="flex items-center gap-2.5">
+                {/* Activity year */}
+                <div className="space-y-2.5">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
+                    Ano de Atividade
+                  </Label>
+                  <div className="flex gap-2">
+                    {([1, 2, 3] as const).map((y) => (
+                      <button
+                        key={y}
+                        onClick={() => setActivityYear(y)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all border ${
+                          activityYear === y
+                            ? "bg-primary text-white border-primary"
+                            : "bg-muted border-border/40 text-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        {y === 3 ? "3+" : y} ano
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* NHR */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/40">
                   <Switch id="nhr" checked={hasNHR} onCheckedChange={setHasNHR} />
-                  <Label htmlFor="nhr" className="cursor-pointer text-sm">
-                    {hasNHR ? (
-                      <span className="text-primary font-semibold">Увімкнено · 20% flat</span>
-                    ) : (
-                      <span className="text-muted-foreground">Вимкнено</span>
-                    )}
+                  <Label htmlFor="nhr" className="cursor-pointer text-sm font-medium flex-1">
+                    NHR (20% flat)
                   </Label>
                 </div>
-              </div>
-            </div>
 
-            {/* Activity type chips */}
-            <div className="space-y-2">
-              <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-                Тип активності
-              </Label>
-              <div className="flex flex-wrap gap-1.5">
-                {ACTIVITY_COEFFICIENTS.map((a, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCoeffIdx(i)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                      coeffIdx === i
-                        ? "bg-primary/10 text-primary border-primary/40 font-semibold"
-                        : "bg-background border-border hover:bg-muted text-foreground"
-                    }`}
-                  >
-                    {a.label}
-                    <span className={`ml-1 ${coeffIdx === i ? "text-primary/70" : "text-muted-foreground"}`}>
-                      {(a.value * 100).toFixed(0)}%
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-          </CardContent>
-        </Card>
-
-        {/* ── KPI summary cards ─────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-          <Card className={`card-hover shadow-sm border-border/60 ${displayMode === "freelancer" ? "ring-2 ring-primary/30" : ""}`}>
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-                  Net / міс · FL
-                </p>
-                {displayMode === "freelancer" && (
-                  <Badge className="bg-primary text-primary-foreground text-[10px] h-4 px-1.5 rounded-full">
-                    Кращий
-                  </Badge>
-                )}
-              </div>
-              <p className="text-3xl font-bold tabular-nums text-primary leading-none">
-                {fmt(result.netMonthlyFL)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1.5">{fmt(result.netFreelancer)} / рік</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Ставка <span className="font-semibold text-foreground">{pct(result.effectiveRateFL)}</span>
-              </p>
-            </CardContent>
-          </Card>
-
-          {hasNHR ? (
-            <Card className={`card-hover shadow-sm border-border/60 ${displayMode === "nhr" ? "ring-2 ring-primary/30" : ""}`}>
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-                    Net / міс · NHR
-                  </p>
-                  {displayMode === "nhr" && (
-                    <Badge className="bg-primary text-primary-foreground text-[10px] h-4 px-1.5 rounded-full">
-                      Кращий
-                    </Badge>
-                  )}
+                {/* Activity type */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
+                    Tipo de Atividade
+                  </Label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {ACTIVITY_COEFFICIENTS.map((a, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCoeffIdx(i)}
+                        className={`px-2 py-2 rounded-lg text-xs font-medium border transition-all ${
+                          coeffIdx === i
+                            ? "bg-primary/10 text-primary border-primary/40"
+                            : "bg-background border-border/40 hover:bg-muted text-foreground"
+                        }`}
+                      >
+                        <div className="truncate">{a.label.split(" / ")[0]}</div>
+                        <div className="text-[10px] opacity-70">{(a.value * 100).toFixed(0)}%</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-3xl font-bold tabular-nums text-primary leading-none">
-                  {fmt(result.netMonthlyNHR)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1.5">{fmt(result.netNHR)} / рік</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Ставка <span className="font-semibold text-foreground">{pct(result.effectiveRateNHR)}</span>
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="shadow-sm border-dashed border-border/50 opacity-45">
-              <CardContent className="pt-5 pb-4">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-2">
-                  Net / міс · NHR
-                </p>
-                <p className="text-2xl font-bold text-muted-foreground">—</p>
-                <p className="text-xs text-muted-foreground mt-1.5">Увімкніть NHR</p>
-              </CardContent>
-            </Card>
-          )}
 
-          <Card className="card-hover shadow-sm border-border/60">
-            <CardContent className="pt-5 pb-4">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-2">
-                Seg. Social / рік
-              </p>
-              <p className="text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-400 leading-none">
-                {fmt(result.socialSecurity)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1.5">{fmt(result.socialSecurity / 12)} / міс</p>
-              {activityYear === 1 ? (
-                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
-                  ✓ Рік 1 — звільнено
-                </p>
-              ) : (
-                <p className="text-[11px] text-muted-foreground mt-0.5">21.4% від бази</p>
-              )}
-            </CardContent>
-          </Card>
+                <Separator />
+
+                {/* Info box */}
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1.5">
+                  <p className="text-xs font-bold text-primary uppercase tracking-wider">Guia Rápido</p>
+                  <ul className="text-[11px] text-muted-foreground space-y-1">
+                    <li>• IRS: Imposto sobre rendimento (13–48%)</li>
+                    <li>• NHR: Regime especial não-habitual (20%)</li>
+                    <li>• Seg. Social: Contribuição obrigatória (21.4%)</li>
+                  </ul>
+                </div>
+
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ── RIGHT: Results ─────────────────────────────────── */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Main result with accent line */}
+            <Card className="shadow-lg border-border/60 overflow-hidden">
+              <CardContent className="p-0">
+                <div className="flex">
+                  {/* Accent bar */}
+                  <div className="w-1.5 bg-primary" />
+
+                  <div className="flex-1 p-6">
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">
+                      Rendimento Líquido Mensal
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-5xl font-bold text-primary">
+                        {fmtDec(mainResult)}
+                      </span>
+                      <span className="text-lg text-muted-foreground">/mês</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Anual: {fmt(displayMode === "nhr" ? result.netNHR : result.netFreelancer)}
+                    </p>
+                    {displayMode === "nhr" && (
+                      <Badge className="mt-3 bg-amber-500 text-white text-xs">
+                        NHR Mode
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Detalhamento */}
+            <Card className="shadow-lg border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Detalhamento Mensal (€/mês)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  {[
+                    { label: "Rendimento Bruto", value: gross / 12, color: "text-foreground" },
+                    { label: "IRS", value: (displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12, color: "text-red-600 dark:text-red-400" },
+                    { label: "Seg. Social", value: result.socialSecurity / 12, color: "text-amber-600 dark:text-amber-400" },
+                    { label: "Solidariedade", value: (displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12, color: "text-orange-500" },
+                  ].map((row) => (
+                    <div key={row.label} className="flex justify-between items-center py-2 border-b border-border/40 last:border-0">
+                      <span className="text-sm text-muted-foreground">{row.label}</span>
+                      <span className={`font-semibold tabular-nums ${row.color}`}>
+                        {fmtDec(row.value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex justify-between items-center">
+                  <span className="font-bold text-primary uppercase text-xs tracking-wider">Líquido Total</span>
+                  <span className="text-2xl font-bold text-primary">{fmtDec(mainResult)}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Carga Fiscal (Tax burden bar) */}
+            <Card className="shadow-lg border-border/60">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Carga Fiscal Anual</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Distribuição: {fmt(totalTaxes + result.socialSecurity)}</span>
+                    <span className="text-muted-foreground">
+                      {pct((totalTaxes + result.socialSecurity) / gross)}
+                    </span>
+                  </div>
+                  <div className="flex h-8 gap-0.5 rounded-lg overflow-hidden bg-muted">
+                    <div
+                      className="bg-primary"
+                      style={{
+                        width: `${(result.socialSecurity / (totalTaxes + result.socialSecurity)) * 100}%`,
+                      }}
+                      title={`Seg. Social: ${fmtDec(result.socialSecurity / 12)}`}
+                    />
+                    <div
+                      className="bg-red-500"
+                      style={{
+                        width: `${((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / (totalTaxes + result.socialSecurity)) * 100}%`,
+                      }}
+                      title={`IRS: ${fmtDec((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12)}`}
+                    />
+                    <div
+                      className="bg-orange-500"
+                      style={{
+                        width: `${((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / (totalTaxes + result.socialSecurity)) * 100}%`,
+                      }}
+                      title={`Solidariedade: ${fmtDec((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12)}`}
+                    />
+                    <div
+                      className="bg-emerald-500"
+                      style={{
+                        width: `${(result.netFreelancer / (gross)) * 100}%`,
+                      }}
+                      title={`Líquido: ${fmtDec((displayMode === "nhr" ? result.netNHR : result.netFreelancer) / 12)}`}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                      <span>Líquido</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 bg-primary rounded-full" />
+                      <span>Seg. Social</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 bg-red-500 rounded-full" />
+                      <span>IRS</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                      <span>Solidariedade</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Warning if high tax bracket */}
+            {(displayMode === "nhr" ? result.effectiveRateNHR : result.effectiveRateFL) > 0.35 && (
+              <div className="flex gap-3 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold text-red-900 dark:text-red-400 mb-1">Aviso de Escalão</p>
+                  <p className="text-red-800 dark:text-red-300">
+                    Seu rendimento está no {Math.round((displayMode === "nhr" ? result.effectiveRateNHR : result.effectiveRateFL) * 100)}º escalão de IRS.
+                    Considere deduções ou otimizações fiscais.
+                  </p>
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
 
-        {/* ── Tabs ─────────────────────────────────────────────── */}
-        <Tabs defaultValue="breakdown">
-          <TabsList className="bg-muted/60 border border-border/40 w-full sm:w-auto h-9">
-            <TabsTrigger value="breakdown" className="text-xs">Розбивка</TabsTrigger>
-            <TabsTrigger value="reverse"   className="text-xs">Зворотній</TabsTrigger>
-            <TabsTrigger value="years"     className="text-xs">По роках</TabsTrigger>
-            <TabsTrigger value="brackets"  className="text-xs">Шкала IRS</TabsTrigger>
+        {/* ── Detailed Tabs ─────────────────────────────────── */}
+        <Tabs defaultValue="breakdown" className="mb-12">
+          <TabsList className="bg-muted border border-border/40">
+            <TabsTrigger value="breakdown" className="text-xs sm:text-sm">Distribuição</TabsTrigger>
+            <TabsTrigger value="reverse" className="text-xs sm:text-sm">Cálculo Reverso</TabsTrigger>
+            <TabsTrigger value="years" className="text-xs sm:text-sm">Por Ano</TabsTrigger>
+            <TabsTrigger value="brackets" className="text-xs sm:text-sm">Escala IRS</TabsTrigger>
           </TabsList>
 
           <TabsContent value="breakdown" className="mt-4">
-            <Card className="shadow-sm border-border/60">
+            <Card className="shadow-lg border-border/60">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">
-                  Розподіл доходу
-                  {hasNHR && (
-                    <span className="ml-2 font-normal text-muted-foreground text-xs">
-                      ({displayMode === "nhr" ? "NHR" : "Freelancer"})
-                    </span>
-                  )}
-                </CardTitle>
+                <CardTitle className="text-sm">Distribuição de Rendimento</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent>
                 <BreakdownBar result={result} mode={displayMode} />
-                {hasNHR && (
-                  <>
-                    <Separator />
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
-                      Порівняння режимів
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground font-medium">Freelancer</p>
-                        <BreakdownBar result={result} mode="freelancer" />
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground font-medium">NHR</p>
-                        <BreakdownBar result={result} mode="nhr" />
-                      </div>
-                    </div>
-                  </>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="reverse" className="mt-4">
-            <Card className="shadow-sm border-border/60">
+            <Card className="shadow-lg border-border/60">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Зворотній розрахунок</CardTitle>
-                <CardDescription className="text-xs">
-                  Введіть бажаний net — отримаєте потрібний gross
-                </CardDescription>
+                <CardTitle className="text-sm">Cálculo Reverso</CardTitle>
+                <CardDescription className="text-xs">Qual o bruto necessário para um líquido-alvo?</CardDescription>
               </CardHeader>
               <CardContent>
-                <ReverseCalculator
-                  activityYear={activityYear}
-                  hasNHR={hasNHR}
-                  coefficient={coefficient}
-                />
+                <ReverseCalculator activityYear={activityYear} hasNHR={hasNHR} coefficient={coefficient} />
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="years" className="mt-4">
-            <Card className="shadow-sm border-border/60">
+            <Card className="shadow-lg border-border/60">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Порівняння по роках</CardTitle>
-                <CardDescription className="text-xs">
-                  Gross {fmt(gross)} — як змінюються податки
-                </CardDescription>
+                <CardTitle className="text-sm">Comparação Por Anos</CardTitle>
               </CardHeader>
               <CardContent>
                 <ComparisonTable grossAnnual={gross} hasNHR={hasNHR} coefficient={coefficient} />
@@ -342,13 +356,9 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="brackets" className="mt-4">
-            <Card className="shadow-sm border-border/60">
+            <Card className="shadow-lg border-border/60">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Шкала IRS 2025</CardTitle>
-                <CardDescription className="text-xs">
-                  Активні брекети для бази{" "}
-                  <strong className="text-foreground">{fmt(result.taxableBaseReduced)}</strong>
-                </CardDescription>
+                <CardTitle className="text-sm">Escala IRS 2025</CardTitle>
               </CardHeader>
               <CardContent>
                 <BracketVisualizer taxableIncome={result.taxableBaseReduced} />
@@ -358,14 +368,15 @@ export default function Home() {
         </Tabs>
 
         {/* ── Footer ───────────────────────────────────────────── */}
-        <footer className="text-center pb-8 space-y-1">
-          <p className="text-[11px] text-muted-foreground">
-            Розрахунки орієнтовні. Не враховує особисті відрахування, ПДВ (IVA), сімейний стан.
+        <footer className="text-center py-8 border-t border-border/20 text-xs text-muted-foreground">
+          <p>
+            © 2025 Sovereign Ledger. Todos os direitos reservados. Conformidade com Autoridade Tributária Portuguesa.
           </p>
-          <p className="text-[11px] text-muted-foreground">
-            Для точного розрахунку зверніться до <em>contabilista certificado</em>.
-            Джерело: CIRS 2025, Segurança Social Portugal.
-          </p>
+          <div className="flex justify-center gap-4 mt-2 text-[11px]">
+            <a href="#" className="hover:text-foreground">Aviso Legal</a>
+            <a href="#" className="hover:text-foreground">Política de Privacidade</a>
+            <a href="#" className="hover:text-foreground">Código Tributário</a>
+          </div>
         </footer>
 
       </main>
