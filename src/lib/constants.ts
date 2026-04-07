@@ -4,16 +4,6 @@
  */
 
 export const UI = {
-  // Header
-  header: {
-    title: "Sovereign Ledger",
-    nav: {
-      about: "Про нас",
-      contact: "Контакт",
-      language: "UK/EN",
-    },
-  },
-
   // Hero
   hero: {
     title: "Калькулятор податку на доходи",
@@ -110,12 +100,7 @@ export const UI = {
 
   // Footer
   footer: {
-    copyright: "© 2025 Sovereign Ledger. Усі права захищені. Відповідність португальському податковому органу.",
-    links: [
-      { label: "Юридичне положення", href: "#" },
-      { label: "Політика конфіденційності", href: "#" },
-      { label: "Податковий кодекс", href: "#" },
-    ],
+    copyright: "© 2025 Sovereign Ledger. Розраховувач податків у Португалії — ПДФО 2025, NHR, Segurança Social.",
   },
 
   // Exchange rate toast

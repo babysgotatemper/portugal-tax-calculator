@@ -60,44 +60,26 @@ export default function Home() {
   return (
     <div className="gradient-hero min-h-screen">
 
-      {/* ── Header ───────────────────────────────────────────── */}
-      <header className="glass border-b border-border/30 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <span className="text-xl font-bold text-primary">{UI.header.title}</span>
-          <nav className="hidden sm:flex items-center gap-8 text-sm font-medium">
-            <a href="#about" className="text-foreground/70 hover:text-foreground">
-              {UI.header.nav.about}
-            </a>
-            <a href="#contact" className="text-foreground/70 hover:text-foreground">
-              {UI.header.nav.contact}
-            </a>
-            <a href="#" className="text-primary font-semibold">
-              {UI.header.nav.language}
-            </a>
-          </nav>
-          <button className="text-foreground/60 hover:text-foreground">🌐</button>
-        </div>
-      </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
         {/* ── Hero ─────────────────────────────────────────────── */}
-        <div className="mb-12">
-          <h1 className="text-4xl sm:text-5xl font-bold text-primary leading-tight mb-3">
+        {/* <div className="mb-12 pt-4">
+          <h1 className="text-3xl sm:text-4xl font-bold text-primary leading-tight mb-2">
             {UI.hero.title}{" "}
             <span className="text-primary">{UI.hero.subtitle}</span>
           </h1>
-          <p className="text-muted-foreground text-base max-w-2xl">
+          <p className="text-muted-foreground text-sm sm:text-base max-w-2xl">
             {UI.hero.description}
           </p>
-        </div>
+        </div> */}
 
         {/* ── Main 2-column layout ───────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
 
           {/* ── LEFT: Inputs ─────────────────────────────────── */}
           <div className="lg:col-span-1">
-            <Card className="shadow-lg border-border/60 sticky top-20">
+            <Card className="shadow-lg border-border/60 sticky top-8">
               <CardContent className="pt-6 space-y-5">
 
                 {/* Gross input */}
@@ -484,13 +466,6 @@ export default function Home() {
         {/* ── Footer ───────────────────────────────────────────── */}
         <footer className="text-center py-8 border-t border-border/20 text-xs text-muted-foreground">
           <p>{UI.footer.copyright}</p>
-          <div className="flex justify-center gap-4 mt-2 text-[11px]">
-            {UI.footer.links.map((link) => (
-              <a key={link.label} href={link.href} className="hover:text-foreground">
-                {link.label}
-              </a>
-            ))}
-          </div>
         </footer>
 
       </main>
