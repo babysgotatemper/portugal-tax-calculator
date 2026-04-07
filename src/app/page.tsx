@@ -22,10 +22,7 @@ import { BreakdownBar } from "@/components/BreakdownBar"
 import { ComparisonTable } from "@/components/ComparisonTable"
 import { BracketVisualizer } from "@/components/BracketVisualizer"
 import { ReverseCalculator } from "@/components/ReverseCalculator"
-import { ExchangeRateToast } from "@/components/ExchangeRateToast"
-
-const fmt = (n: number) =>
-  n.toLocaleString("uk-UA", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })
+import { PriceWithUSD } from "@/components/PriceWithUSD"
 
 const fmtDec = (n: number) =>
   n.toLocaleString("uk-UA", { style: "currency", currency: "EUR", maximumFractionDigits: 2 })
@@ -64,7 +61,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
         {/* ── Hero ─────────────────────────────────────────────── */}
-        <div className="mb-12 pt-4">
+        {/* <div className="mb-12 pt-4">
           <h1 className="text-3xl sm:text-4xl font-bold text-primary leading-tight mb-2">
             {UI.hero.title}{" "}
             <span className="text-primary">{UI.hero.subtitle}</span>
@@ -72,7 +69,7 @@ export default function Home() {
           <p className="text-muted-foreground text-sm sm:text-base max-w-2xl">
             {UI.hero.description}
           </p>
-        </div>
+        </div> */}
 
         {/* ── Main 2-column layout ───────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
@@ -204,31 +201,26 @@ export default function Home() {
 
                   <div className="flex-1 p-6 grid grid-cols-2 gap-6">
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-3">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
                           {UI.results.monthlyNetTitle}
                         </p>
                         <TooltipIcon text={TOOLTIPS.netIncome} />
                       </div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold text-primary">
-                          {fmtDec(mainResult)}
-                        </span>
+                      <div className="flex items-baseline gap-2 mb-2">
+                        <div className="text-3xl">
+                          <PriceWithUSD amountEUR={mainResult} showFull={true} />
+                        </div>
                         <span className="text-sm text-muted-foreground">/{UI.results.monthLabel}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {UI.results.annualLabel}: {fmt(displayMode === "nhr" ? result.netNHR : result.netFreelancer)}
+                      <p className="text-xs text-muted-foreground">
+                        {UI.results.annualLabel}: <PriceWithUSD amountEUR={displayMode === "nhr" ? result.netNHR : result.netFreelancer} />
                       </p>
                       {displayMode === "nhr" && (
                         <Badge className="mt-3 bg-amber-500 text-white text-xs">
                           {UI.results.nhrBadge}
                         </Badge>
                       )}
-                    </div>
-
-                    {/* Exchange rate toast */}
-                    <div className="border-l border-border/40 pl-6">
-                      <ExchangeRateToast amountEUR={mainResult} />
                     </div>
                   </div>
                 </div>
@@ -274,9 +266,9 @@ export default function Home() {
                       className="flex justify-between items-center py-2 border-b border-border/40 last:border-0"
                     >
                       <span className="text-sm text-muted-foreground">{row.label}</span>
-                      <span className={`font-semibold tabular-nums ${row.color}`}>
-                        {fmtDec(row.value)}
-                      </span>
+                      <div className={`${row.color}`}>
+                        <PriceWithUSD amountEUR={row.value} />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -284,7 +276,9 @@ export default function Home() {
                   <span className="font-bold text-primary uppercase text-xs tracking-wider">
                     {UI.results.totalNet}
                   </span>
-                  <span className="text-2xl font-bold text-primary">{fmtDec(mainResult)}</span>
+                  <div className="text-primary">
+                    <PriceWithUSD amountEUR={mainResult} showFull={true} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -303,11 +297,14 @@ export default function Home() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-muted-foreground">
-                      {UI.results.distribution}: {fmt(totalTaxes + result.socialSecurity)}
+                      {UI.results.distribution}:
                     </span>
-                    <span className="text-muted-foreground">
-                      {pct((totalTaxes + result.socialSecurity) / gross)}
-                    </span>
+                    <div className="text-muted-foreground">
+                      <PriceWithUSD amountEUR={totalTaxes + result.socialSecurity} />
+                      <span className="ml-2">
+                        {pct((totalTaxes + result.socialSecurity) / gross)}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex h-8 gap-0.5 rounded-lg overflow-hidden bg-muted">
                     <div
