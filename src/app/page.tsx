@@ -217,9 +217,6 @@ export default function Home() {
                               ≈ ${(mainResult * 1.1).toLocaleString("uk-UA", { maximumFractionDigits: 0 })} {UI.results.monthLabel}
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {UI.results.annualLabel}: <PriceWithUSD amountEUR={displayMode === "nhr" ? result.netNHR : result.netFreelancer} />
-                          </p>
                         </div>
                       </div>
                       {displayMode === "nhr" && (
