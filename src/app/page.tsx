@@ -194,59 +194,61 @@ export default function Home() {
 
             {/* Main result with accent line */}
             <Card className="shadow-lg border-border/60 overflow-hidden">
-              <div className="flex">
-                {/* Accent bar - full height */}
-                <div className="w-2 bg-linear-to-b from-primary via-primary to-transparent self-stretch" />
+              <CardContent className="p-0">
+                <div className="flex">
+                  {/* Accent bar */}
+                  <div className="w-2 bg-linear-to-b from-primary via-primary to-transparent" />
 
-                <CardContent className="flex-1 px-8 py-6 p-0">
-                  <div className="flex items-center justify-between gap-6">
-                    {/* Label */}
-                    <div className="flex items-center gap-2 min-w-max">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                        {UI.results.monthlyNetTitle}
-                      </p>
-                      <TooltipIcon text={TOOLTIPS.netIncome} />
+                  <div className="flex-1 px-8 py-6">
+                    <div className="flex items-center justify-between gap-6">
+                      {/* Label */}
+                      <div className="flex items-center gap-2 min-w-max">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+                          {UI.results.monthlyNetTitle}
+                        </p>
+                        <TooltipIcon text={TOOLTIPS.netIncome} />
+                      </div>
+
+                      {/* Main amount */}
+                      <div className="flex items-baseline gap-2 flex-1 justify-center">
+                        <div className="text-4xl font-bold text-primary leading-none">
+                          {(mainResult).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          ≈ ${(mainResult * 1.1).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
+                        </div>
+                      </div>
+
+                      {/* Gross & Rate */}
+                      <div className="flex items-center gap-8 min-w-max">
+                        <div>
+                          <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-1">
+                            Валовий
+                          </p>
+                          <p className="text-lg font-bold text-foreground">
+                            {(gross / 12).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}€
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-1">
+                            Ставка
+                          </p>
+                          <p className="text-lg font-bold text-primary">
+                            {pct(displayMode === "nhr" ? result.effectiveRateNHR : result.effectiveRateFL)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* NHR Badge */}
+                      {displayMode === "nhr" && (
+                        <Badge className="bg-amber-500 text-white text-xs h-fit ml-auto">
+                          {UI.results.nhrBadge}
+                        </Badge>
+                      )}
                     </div>
-
-                    {/* Main amount */}
-                    <div className="flex items-baseline gap-2 flex-1 justify-center">
-                      <div className="text-4xl font-bold text-primary leading-none">
-                        {(mainResult).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        ≈ ${(mainResult * 1.1).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
-                      </div>
-                    </div>
-
-                    {/* Gross & Rate */}
-                    <div className="flex items-center gap-8 min-w-max">
-                      <div>
-                        <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-1">
-                          Валовий
-                        </p>
-                        <p className="text-lg font-bold text-foreground">
-                          {(gross / 12).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}€
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-1">
-                          Ставка
-                        </p>
-                        <p className="text-lg font-bold text-primary">
-                          {pct(displayMode === "nhr" ? result.effectiveRateNHR : result.effectiveRateFL)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* NHR Badge */}
-                    {displayMode === "nhr" && (
-                      <Badge className="bg-amber-500 text-white text-xs h-fit ml-auto">
-                        {UI.results.nhrBadge}
-                      </Badge>
-                    )}
                   </div>
-                </CardContent>
-              </div>
+                </div>
+              </CardContent>
             </Card>
 
             {/* Detalhamento */}
