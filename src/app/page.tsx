@@ -197,30 +197,55 @@ export default function Home() {
               <CardContent className="p-0">
                 <div className="flex">
                   {/* Accent bar */}
-                  <div className="w-1.5 bg-primary" />
+                  <div className="w-2 bg-linear-to-b from-primary via-primary to-transparent" />
 
-                  <div className="flex-1 p-6 grid grid-cols-2 gap-6">
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
-                          {UI.results.monthlyNetTitle}
-                        </p>
-                        <TooltipIcon text={TOOLTIPS.netIncome} />
-                      </div>
-                      <div className="flex items-baseline gap-2 mb-2">
-                        <div className="text-3xl">
-                          <PriceWithUSD amountEUR={mainResult} showFull={true} />
+                  <div className="flex-1 px-8 py-8">
+                    <div className="flex items-start justify-between mb-6">
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-bold letter-spacing-1">
+                            {UI.results.monthlyNetTitle}
+                          </p>
+                          <TooltipIcon text={TOOLTIPS.netIncome} />
                         </div>
-                        <span className="text-sm text-muted-foreground">/{UI.results.monthLabel}</span>
+                        <div className="space-y-2">
+                          <div>
+                            <div className="text-5xl font-bold text-primary leading-none">
+                              {(mainResult).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              ≈ ${(mainResult * 1.1).toLocaleString("uk-UA", { maximumFractionDigits: 0 })} {UI.results.monthLabel}
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {UI.results.annualLabel}: <PriceWithUSD amountEUR={displayMode === "nhr" ? result.netNHR : result.netFreelancer} />
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {UI.results.annualLabel}: <PriceWithUSD amountEUR={displayMode === "nhr" ? result.netNHR : result.netFreelancer} />
-                      </p>
                       {displayMode === "nhr" && (
-                        <Badge className="mt-3 bg-amber-500 text-white text-xs">
+                        <Badge className="bg-amber-500 text-white text-xs h-fit">
                           {UI.results.nhrBadge}
                         </Badge>
                       )}
+                    </div>
+
+                    <div className="border-t border-border/40 pt-6 grid grid-cols-2 gap-8">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">
+                          Валовий / міс
+                        </p>
+                        <p className="text-2xl font-bold text-foreground">
+                          {(gross / 12).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}€
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">
+                          Ставка
+                        </p>
+                        <p className="text-2xl font-bold text-primary">
+                          {pct(displayMode === "nhr" ? result.effectiveRateNHR : result.effectiveRateFL)}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
