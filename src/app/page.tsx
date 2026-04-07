@@ -44,7 +44,7 @@ function TooltipIcon({ text }: { text: string }) {
 }
 
 export default function Home() {
-  const [gross, setGross] = useState(10000)
+  const [gross, setGross] = useState(100000)
   const [activityYear, setActivityYear] = useState<1 | 2 | 3>(1)
   const [hasNHR, setHasNHR] = useState(false)
   const [coeffIdx, setCoeffIdx] = useState(0)
