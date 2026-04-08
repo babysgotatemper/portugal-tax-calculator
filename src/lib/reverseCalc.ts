@@ -1,10 +1,11 @@
-import { calcAll } from "./taxEngine"
+import { calcAll, type DeductionInputs } from "./taxEngine"
 
 export function findRequiredGross(
   targetNetMonthly: number,
   activityYear: 1 | 2 | 3,
   hasNHR: boolean,
   coefficient = 0.75,
+  deductions?: DeductionInputs,
 ): { grossFL: number; grossNHR: number } {
   const targetNetAnnual = targetNetMonthly * 12
 
@@ -14,7 +15,7 @@ export function findRequiredGross(
 
     for (let i = 0; i < 100; i++) {
       const mid = (lo + hi) / 2
-      const result = calcAll({ grossAnnual: mid, activityYear, hasNHR: useNHR, coefficient })
+      const result = calcAll({ grossAnnual: mid, activityYear, hasNHR: useNHR, coefficient, deductions })
       const net = useNHR
         ? Math.max(result.netFreelancer, result.netNHR)
         : result.netFreelancer

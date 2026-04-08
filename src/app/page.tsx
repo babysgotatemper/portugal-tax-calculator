@@ -1,9 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -14,14 +16,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { AlertCircle, HelpCircle } from "lucide-react"
-import { calcAll } from "@/lib/taxEngine"
+import { SelectRoot, SelectTrigger, SelectContent, SelectViewport, SelectItem } from "@/components/ui/select"
+import { CollapsibleRoot, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
+import { AlertCircle, HelpCircle, Moon, Sun } from "lucide-react"
+import { calcAll, type DeductionInputs } from "@/lib/taxEngine"
 import { ACTIVITY_COEFFICIENTS } from "@/lib/brackets"
 import { UI, TOOLTIPS } from "@/lib/constants"
 import { BreakdownBar } from "@/components/BreakdownBar"
 import { ComparisonTable } from "@/components/ComparisonTable"
 import { BracketVisualizer } from "@/components/BracketVisualizer"
 import { ReverseCalculator } from "@/components/ReverseCalculator"
+import { DeductionsPanel } from "@/components/DeductionsPanel"
 import { useExchangeRate } from "@/components/ExchangeRateToast"
 import { PriceWithUSD } from "@/components/PriceWithUSD"
 
@@ -43,14 +48,80 @@ function TooltipIcon({ text }: { text: string }) {
   )
 }
 
+function ThemeToggle() {
+  const [theme, setTheme] = useState<"dark" | "light">("dark")
+
+  function toggleTheme() {
+    const isDark = document.documentElement.classList.contains("dark")
+    const nextTheme = isDark ? "light" : "dark"
+
+    setTheme(nextTheme)
+    document.documentElement.classList.toggle("dark", nextTheme === "dark")
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={toggleTheme}
+      aria-label={theme === "dark" ? "Увімкнути світлу тему" : "Увімкнути темну тему"}
+      className="gap-2"
+    >
+      {theme === "dark" ? (
+        <Sun className="size-3.5" />
+      ) : (
+        <Moon className="size-3.5" />
+      )}
+      <span className="hidden sm:inline">
+        {theme === "dark" ? "Світла" : "Темна"}
+      </span>
+    </Button>
+  )
+}
+
+function Header() {
+  return (
+    <header className="border-b border-border/60 bg-background/75 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <Link href="/" className="min-w-0">
+          <p className="truncate text-sm font-semibold text-foreground">
+            Portugal Tax Calculator
+          </p>
+          <p className="hidden text-xs text-muted-foreground sm:block">
+            IRS 2025, Freelancer та NHR
+          </p>
+        </Link>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/ui"
+            className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-[0.8rem] font-medium transition-colors hover:bg-muted hover:text-foreground"
+          >
+            UI
+          </Link>
+          <ThemeToggle />
+        </div>
+      </div>
+    </header>
+  )
+}
+
 export default function Home() {
   const [gross, setGross] = useState(100000)
   const [activityYear, setActivityYear] = useState<1 | 2 | 3>(1)
   const [hasNHR, setHasNHR] = useState(false)
   const [coeffIdx, setCoeffIdx] = useState(0)
+  const [deductions, setDeductions] = useState<DeductionInputs>({
+    maritalStatus: "single",
+    mortgageInterest: 0,
+    healthExpenses: 0,
+    educationExpenses: 0,
+    numChildren: 0,
+  })
 
   const coefficient = ACTIVITY_COEFFICIENTS[coeffIdx].value
-  const result = calcAll({ grossAnnual: gross, activityYear, hasNHR, coefficient })
+  const result = calcAll({ grossAnnual: gross, activityYear, hasNHR, coefficient, deductions })
   const displayMode: "freelancer" | "nhr" = result.bestMode
   const mainResult = displayMode === "nhr" ? result.netMonthlyNHR : result.netMonthlyFL
   const totalTaxes = displayMode === "nhr" ? result.totalTaxNHR : result.totalTaxFL
@@ -60,7 +131,7 @@ export default function Home() {
 
   return (
     <div className="gradient-hero min-h-screen">
-
+      <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
@@ -157,23 +228,54 @@ export default function Home() {
                     </Label>
                     <TooltipIcon text={TOOLTIPS.activityYear} />
                   </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {ACTIVITY_COEFFICIENTS.map((a, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setCoeffIdx(i)}
-                        className={`px-2 py-2 rounded-lg text-xs font-medium border transition-all ${
-                          coeffIdx === i
-                            ? "bg-primary/10 text-primary border-primary/40"
-                            : "bg-background border-border/40 hover:bg-muted text-foreground"
-                        }`}
-                      >
-                        <div className="truncate">{a.label.split(" / ")[0]}</div>
-                        <div className="text-[10px] opacity-70">{(a.value * 100).toFixed(0)}%</div>
-                      </button>
-                    ))}
-                  </div>
+                  <SelectRoot
+                    value={coeffIdx.toString()}
+                    onValueChange={(val) => {
+                      if (val !== null) {
+                        setCoeffIdx(parseInt(val))
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      {ACTIVITY_COEFFICIENTS[coeffIdx].label.split(" / ")[0]}
+                      <span className="text-xs text-muted-foreground ml-1">
+                        {(ACTIVITY_COEFFICIENTS[coeffIdx].value * 100).toFixed(0)}%
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectViewport>
+                        {ACTIVITY_COEFFICIENTS.map((a, i) => (
+                          <SelectItem
+                            key={i}
+                            value={i.toString()}
+                            className="cursor-pointer"
+                          >
+                            <div className="flex items-center justify-between gap-3 w-full">
+                              <span>{a.label}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {(a.value * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectViewport>
+                    </SelectContent>
+                  </SelectRoot>
                 </div>
+
+                <Separator />
+
+                {/* Deductions Panel */}
+                <CollapsibleRoot defaultOpen={false}>
+                  <CollapsibleTrigger>{UI.deductions.sectionLabel}</CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <DeductionsPanel
+                      deductions={deductions}
+                      onChange={setDeductions}
+                      totalDeduction={result.totalDeduction}
+                    />
+                  </CollapsibleContent>
+                </CollapsibleRoot>
 
                 <Separator />
 
@@ -197,13 +299,11 @@ export default function Home() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* Main result with accent line */}
-            <Card className="shadow-lg border-border/60 overflow-hidden">
+            <Card className="relative shadow-lg border-border/60 overflow-hidden">
+              <div className="absolute inset-y-0 left-0 w-2 bg-primary" />
               <CardContent className="p-0">
-                <div className="flex">
-                  {/* Accent bar */}
-                  <div className="w-2 bg-linear-to-b from-primary via-primary to-transparent" />
-
-                  <div className="flex-1 px-8 py-6">
+                <div>
+                  <div className="px-8 py-6 pl-10">
                     <div className="flex items-center justify-between gap-6">
                       {/* Label */}
                       <div className="flex items-center gap-2 min-w-max">
@@ -243,139 +343,167 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* NHR Badge */}
-                      {displayMode === "nhr" && (
-                        <Badge className="bg-amber-500 text-white text-xs h-fit ml-auto">
-                          {UI.results.nhrBadge}
-                        </Badge>
+                      {/* Badges */}
+                      <div className="flex gap-2 ml-auto">
+                        {displayMode === "nhr" && (
+                          <Badge className="bg-amber-500 text-white text-xs h-fit">
+                            {UI.results.nhrBadge}
+                          </Badge>
+                        )}
+                        {result.familyQuotient > 1.0 && (
+                          <Badge className="bg-emerald-600 text-white text-xs h-fit" title={TOOLTIPS.familyQuotient}>
+                            Коефіцієнт: {result.familyQuotient.toFixed(2)}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tax Details & Tax Burden - Combined Collapsible */}
+            <Card className="shadow-lg border-border/60 overflow-hidden">
+              <CollapsibleRoot defaultOpen={true}>
+                <CollapsibleTrigger className="border-b border-border/40">
+                  {UI.results.taxBurdenTitle} & {UI.results.detailsTitle}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="px-0! py-0!">
+                  <div className="space-y-6 p-6">
+                    {/* Monthly Breakdown */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold">
+                          {UI.results.detailsTitle}
+                        </h3>
+                        <TooltipIcon text={TOOLTIPS.taxBurden} />
+                      </div>
+                      <div className="space-y-1">
+                        {[
+                          {
+                            label: UI.results.grossIncome,
+                            value: gross / 12,
+                            color: "text-foreground",
+                          },
+                          {
+                            label: UI.results.pdfoPD,
+                            value: (displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12,
+                            color: "text-red-600 dark:text-red-400",
+                          },
+                          {
+                            label: UI.results.socialContribution,
+                            value: result.socialSecurity / 12,
+                            color: "text-amber-600 dark:text-amber-400",
+                          },
+                          {
+                            label: UI.results.solidarityTax,
+                            value: (displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12,
+                            color: "text-orange-500",
+                          },
+                          ...(result.totalDeduction > 0 && displayMode === "freelancer" ? [{
+                            label: UI.deductions.totalLabel,
+                            value: -result.totalDeduction / 12,
+                            color: "text-emerald-600 dark:text-emerald-400",
+                          }] : []),
+                        ].map((row) => (
+                          <div
+                            key={row.label}
+                            className="flex justify-between items-center py-1 border-b border-border/40 last:border-0"
+                          >
+                            <span className="text-xs text-muted-foreground">{row.label}</span>
+                            <div className={`${row.color} text-xs`}>
+                              <PriceWithUSD amountEUR={row.value} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {result.familyQuotient > 1.0 && (
+                        <div className="flex justify-between items-center py-2 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 text-xs">
+                          <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                            Сімейний коефіцієнт: {result.familyQuotient.toFixed(2)}
+                          </span>
+                          <span className="text-emerald-600 dark:text-emerald-500 text-[10px]">
+                            {TOOLTIPS.familyQuotient}
+                          </span>
+                        </div>
                       )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Detalhamento */}
-            <Card className="shadow-lg border-border/60">
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-sm">
-                    {UI.results.detailsTitle}
-                  </CardTitle>
-                  <TooltipIcon text={TOOLTIPS.taxBurden} />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-1.5">
-                <div className="space-y-1">
-                  {[
-                    {
-                      label: UI.results.grossIncome,
-                      value: gross / 12,
-                      color: "text-foreground",
-                    },
-                    {
-                      label: UI.results.pdfoPD,
-                      value: (displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12,
-                      color: "text-red-600 dark:text-red-400",
-                    },
-                    {
-                      label: UI.results.socialContribution,
-                      value: result.socialSecurity / 12,
-                      color: "text-amber-600 dark:text-amber-400",
-                    },
-                    {
-                      label: UI.results.solidarityTax,
-                      value: (displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12,
-                      color: "text-orange-500",
-                    },
-                  ].map((row) => (
-                    <div
-                      key={row.label}
-                      className="flex justify-between items-center py-1 border-b border-border/40 last:border-0"
-                    >
-                      <span className="text-xs text-muted-foreground">{row.label}</span>
-                      <div className={`${row.color} text-xs`}>
-                        <PriceWithUSD amountEUR={row.value} />
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-2 flex justify-between items-center">
+                        <span className="font-bold text-primary uppercase text-[10px] tracking-wider">
+                          {UI.results.totalNet}
+                        </span>
+                        <div className="text-primary text-xs">
+                          <PriceWithUSD amountEUR={mainResult} showFull={true} />
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-2 flex justify-between items-center">
-                  <span className="font-bold text-primary uppercase text-[10px] tracking-wider">
-                    {UI.results.totalNet}
-                  </span>
-                  <div className="text-primary text-xs">
-                    <PriceWithUSD amountEUR={mainResult} showFull={true} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Carga Fiscal (Tax burden bar) */}
-            <Card className="shadow-lg border-border/60">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-base">
-                    {UI.results.taxBurdenTitle}
-                  </CardTitle>
-                  <TooltipIcon text={TOOLTIPS.taxBurden} />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">
-                      {UI.results.distribution}:
-                    </span>
-                    <div className="text-muted-foreground">
-                      <PriceWithUSD amountEUR={totalTaxes + result.socialSecurity} />
-                      <span className="ml-2">
-                        {pct((totalTaxes + result.socialSecurity) / gross)}
-                      </span>
+                    <Separator />
+
+                    {/* Tax Burden */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold">
+                          {UI.results.taxBurdenTitle}
+                        </h3>
+                        <TooltipIcon text={TOOLTIPS.taxBurden} />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">
+                            {UI.results.distribution}:
+                          </span>
+                          <div className="text-muted-foreground">
+                            <PriceWithUSD amountEUR={totalTaxes + result.socialSecurity} />
+                            <span className="ml-2">
+                              {pct((totalTaxes + result.socialSecurity) / gross)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex h-8 gap-0.5 rounded-lg overflow-hidden bg-muted">
+                          <div
+                            className="bg-emerald-500"
+                            style={{
+                              width: `${((displayMode === "nhr" ? result.netNHR : result.netFreelancer) / gross) * 100}%`,
+                            }}
+                            title={`${UI.results.totalNet}: ${fmtDec((displayMode === "nhr" ? result.netNHR : result.netFreelancer) / 12)}`}
+                          />
+                          <div
+                            className="bg-primary"
+                            style={{
+                              width: `${(result.socialSecurity / gross) * 100}%`,
+                            }}
+                            title={`${UI.results.socialContribution}: ${fmtDec(result.socialSecurity / 12)}`}
+                          />
+                          <div
+                            className="bg-red-500"
+                            style={{
+                              width: `${((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / gross) * 100}%`,
+                            }}
+                            title={`${UI.results.pdfoPD}: ${fmtDec((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12)}`}
+                          />
+                          <div
+                            className="bg-orange-500"
+                            style={{
+                              width: `${((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / gross) * 100}%`,
+                            }}
+                            title={`${UI.results.solidarityTax}: ${fmtDec((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12)}`}
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          {UI.results.legend.map((item) => (
+                            <div key={item.label} className="flex items-center gap-1.5">
+                              <div
+                                className={`w-2 h-2 rounded-full bg-${item.color}-500`}
+                              />
+                              <span>{item.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex h-8 gap-0.5 rounded-lg overflow-hidden bg-muted">
-                    <div
-                      className="bg-emerald-500"
-                      style={{
-                        width: `${((displayMode === "nhr" ? result.netNHR : result.netFreelancer) / gross) * 100}%`,
-                      }}
-                      title={`${UI.results.totalNet}: ${fmtDec((displayMode === "nhr" ? result.netNHR : result.netFreelancer) / 12)}`}
-                    />
-                    <div
-                      className="bg-primary"
-                      style={{
-                        width: `${(result.socialSecurity / gross) * 100}%`,
-                      }}
-                      title={`${UI.results.socialContribution}: ${fmtDec(result.socialSecurity / 12)}`}
-                    />
-                    <div
-                      className="bg-red-500"
-                      style={{
-                        width: `${((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / gross) * 100}%`,
-                      }}
-                      title={`${UI.results.pdfoPD}: ${fmtDec((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12)}`}
-                    />
-                    <div
-                      className="bg-orange-500"
-                      style={{
-                        width: `${((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / gross) * 100}%`,
-                      }}
-                      title={`${UI.results.solidarityTax}: ${fmtDec((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12)}`}
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    {UI.results.legend.map((item) => (
-                      <div key={item.label} className="flex items-center gap-1.5">
-                        <div
-                          className={`w-2 h-2 rounded-full bg-${item.color}-500`}
-                        />
-                        <span>{item.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
+                </CollapsibleContent>
+              </CollapsibleRoot>
             </Card>
 
             {/* Warning if high tax bracket */}
@@ -446,6 +574,7 @@ export default function Home() {
                   activityYear={activityYear}
                   hasNHR={hasNHR}
                   coefficient={coefficient}
+                  deductions={deductions}
                 />
               </CardContent>
             </Card>

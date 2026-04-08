@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Slider } from "@/components/ui/slider"
 import { findRequiredGross } from "@/lib/reverseCalc"
+import { type DeductionInputs } from "@/lib/taxEngine"
 import { PriceWithUSD } from "@/components/PriceWithUSD"
 import { useExchangeRate } from "@/components/ExchangeRateToast"
 
@@ -10,13 +11,14 @@ interface Props {
   activityYear: 1 | 2 | 3
   hasNHR: boolean
   coefficient: number
+  deductions?: DeductionInputs
 }
 
-export function ReverseCalculator({ activityYear, hasNHR, coefficient }: Props) {
+export function ReverseCalculator({ activityYear, hasNHR, coefficient, deductions }: Props) {
   const [targetNet, setTargetNet] = useState(5000)
   const { rate } = useExchangeRate()
 
-  const result = findRequiredGross(targetNet, activityYear, hasNHR, coefficient)
+  const result = findRequiredGross(targetNet, activityYear, hasNHR, coefficient, deductions)
   const saving = result.grossFL - result.grossNHR
 
   return (

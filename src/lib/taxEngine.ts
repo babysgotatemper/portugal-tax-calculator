@@ -1,4 +1,12 @@
-import { TAX_BRACKETS } from "./brackets"
+import { TAX_BRACKETS, DEDUCTION_RULES, getQuotientAtStep } from "./brackets"
+
+export interface DeductionInputs {
+  maritalStatus: "single" | "married" | "single_parent"
+  mortgageInterest: number
+  healthExpenses: number
+  educationExpenses: number
+  numChildren: number
+}
 
 export interface TaxInputs {
   grossAnnual: number
@@ -6,6 +14,7 @@ export interface TaxInputs {
   hasNHR: boolean
   coefficient: number
   nhrRate?: number
+  deductions?: DeductionInputs
 }
 
 export interface TaxResult {
@@ -28,6 +37,8 @@ export interface TaxResult {
   bestMode: "freelancer" | "nhr"
   bestNet: number
   bestNetMonthly: number
+  totalDeduction: number
+  familyQuotient: number
 }
 
 export function applyNewActivityDiscount(taxableBase: number, activityYear: 1 | 2 | 3): number {
@@ -73,13 +84,66 @@ export function calcSocialSecurity(grossAnnual: number, coefficient: number, act
   return grossAnnual * coefficient * 0.214
 }
 
+export function calcIRSWithQuotient(
+  taxableBase: number,
+  maritalStatus: "single" | "married" | "single_parent",
+  numChildren: number
+): number {
+  const baseQ = getQuotientAtStep(maritalStatus, 0)
+  let effectiveTax = calcIRS(taxableBase / baseQ) * baseQ
+
+  for (let i = 0; i < numChildren; i++) {
+    const prevQ = getQuotientAtStep(maritalStatus, i)
+    const nextQ = getQuotientAtStep(maritalStatus, i + 1)
+    const cap = i < 2 ? 300 : 150
+
+    const taxBefore = calcIRS(taxableBase / prevQ) * prevQ
+    const taxAfter = calcIRS(taxableBase / nextQ) * nextQ
+    effectiveTax -= Math.min(taxBefore - taxAfter, cap)
+  }
+
+  return Math.max(0, effectiveTax)
+}
+
 export function calcAll(inputs: TaxInputs): TaxResult {
-  const { grossAnnual, activityYear, hasNHR, coefficient, nhrRate = 0.2 } = inputs
+  const { grossAnnual, activityYear, hasNHR, coefficient, nhrRate = 0.2, deductions } = inputs
 
   const taxableBase = grossAnnual * coefficient
   const taxableBaseReduced = applyNewActivityDiscount(taxableBase, activityYear)
 
-  const irsFreelancer = calcIRS(taxableBaseReduced)
+  // Compute collection deductions (applied to tax amount, not base)
+  const {
+    maritalStatus = "single",
+    mortgageInterest = 0,
+    healthExpenses = 0,
+    educationExpenses = 0,
+    numChildren = 0,
+  } = deductions ?? {}
+
+  const deductMortgage = Math.min(
+    mortgageInterest * DEDUCTION_RULES.mortgage.rate,
+    DEDUCTION_RULES.mortgage.cap
+  )
+  const deductHealth = Math.min(
+    healthExpenses * DEDUCTION_RULES.health.rate,
+    DEDUCTION_RULES.health.cap
+  )
+  const deductEducation = Math.min(
+    educationExpenses * DEDUCTION_RULES.education.rate,
+    DEDUCTION_RULES.education.cap
+  )
+  const perChildAmount = maritalStatus === "single_parent"
+    ? DEDUCTION_RULES.perChildSingleParent
+    : DEDUCTION_RULES.perChild
+  const deductChildren = numChildren * perChildAmount
+  const totalDeduction = deductMortgage + deductHealth + deductEducation + deductChildren
+
+  // Apply family quotient to progressive IRS (freelancer mode only)
+  const familyQuotient = getQuotientAtStep(maritalStatus, numChildren)
+  const grossIRS = calcIRSWithQuotient(taxableBaseReduced, maritalStatus, numChildren)
+
+  // Collection deductions applied to tax (not base)
+  const irsFreelancer = Math.max(0, grossIRS - totalDeduction)
   const irsNHR        = calcIRS_NHR(taxableBase, nhrRate)
 
   const solidarityFL  = calcSolidaritySurcharge(taxableBaseReduced)
@@ -116,5 +180,7 @@ export function calcAll(inputs: TaxInputs): TaxResult {
     bestMode,
     bestNet,
     bestNetMonthly: bestNet / 12,
+    totalDeduction,
+    familyQuotient,
   }
 }
