@@ -395,6 +395,30 @@ export default function Home() {
                     <div className="mx-auto flex max-w-3xl flex-col items-center gap-3">
                       {/* Income summary */}
                       <div className="w-full space-y-1 rounded-lg bg-muted/25 p-1">
+                        {(displayMode === "nhr" || result.familyQuotient > 1.0) && (
+                          <div className="flex justify-center gap-1.5 px-2 pt-1">
+                            {displayMode === "nhr" && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge className="bg-amber-500/15 text-amber-700 border border-amber-500/30 text-[10px] h-5 px-1.5 dark:text-amber-300">
+                                      NHR
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs text-xs">
+                                    NHR показується як активний режим тільки коли статус NHR увімкнений зліва
+                                    і при поточному доході та налаштуваннях дає більший net, ніж freelancer.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            {result.familyQuotient > 1.0 && (
+                              <Badge className="bg-emerald-600 text-white text-[10px] h-5 px-1.5" title={TOOLTIPS.familyQuotient}>
+                                Коеф. {result.familyQuotient.toFixed(2)}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                         {[
                           {
                             label: "За рік",
@@ -457,19 +481,6 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* Badges */}
-                      <div className="flex w-full justify-center gap-2">
-                        {displayMode === "nhr" && (
-                          <Badge className="bg-amber-500 text-white text-xs h-fit">
-                            {UI.results.nhrBadge}
-                          </Badge>
-                        )}
-                        {result.familyQuotient > 1.0 && (
-                          <Badge className="bg-emerald-600 text-white text-xs h-fit" title={TOOLTIPS.familyQuotient}>
-                            Коефіцієнт: {result.familyQuotient.toFixed(2)}
-                          </Badge>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -606,6 +617,7 @@ export default function Home() {
                                       amountEUR={compoundValue.net}
                                       className="min-h-0"
                                       reserveUSDSpace={false}
+                                      forceHideUSD
                                     />
                                   </div>
                                   <div className={`flex items-baseline ${isEmpty ? "text-muted-foreground" : "text-foreground"}`}>
@@ -616,12 +628,17 @@ export default function Home() {
                                       amountEUR={compoundValue.gross}
                                       className="min-h-0"
                                       reserveUSDSpace={false}
+                                      forceHideUSD
                                     />
                                   </div>
                                 </div>
                               ) : (
                                 <div className={`${isEmpty ? "text-muted-foreground" : row.color} mt-1 text-xs`}>
-                                  <PriceWithUSD amountEUR={typeof row.value === "number" ? row.value : 0} />
+                                  <PriceWithUSD
+                                    amountEUR={typeof row.value === "number" ? row.value : 0}
+                                    reserveUSDSpace={false}
+                                    forceHideUSD
+                                  />
                                 </div>
                               )}
                               <span className="absolute bottom-1 right-2 text-[9px] text-muted-foreground">

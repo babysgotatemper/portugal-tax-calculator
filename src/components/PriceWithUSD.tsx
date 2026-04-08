@@ -14,6 +14,7 @@ interface Props {
   usdClassName?: string
   maximumFractionDigits?: number
   reserveUSDSpace?: boolean
+  forceHideUSD?: boolean
 }
 
 type PriceDisplayContextValue = {
@@ -72,10 +73,11 @@ export function PriceWithUSD({
   usdClassName,
   maximumFractionDigits = showFull ? 2 : 0,
   reserveUSDSpace = true,
+  forceHideUSD = false,
 }: Props) {
   const { showUSD, rate, loading, error } = usePriceDisplay()
   const amountUSD = amountEUR * rate
-  const canShowUSD = showUSD && !loading && !error
+  const canShowUSD = showUSD && !forceHideUSD && !loading && !error
 
   return (
     <span className={cn("inline-flex min-h-8 flex-col justify-center leading-tight", className)}>
