@@ -27,9 +27,11 @@ import { ComparisonTable } from "@/components/ComparisonTable"
 import { BracketVisualizer } from "@/components/BracketVisualizer"
 import { ReverseCalculator } from "@/components/ReverseCalculator"
 import { DeductionsPanel } from "@/components/DeductionsPanel"
+import { DonationPopup } from "@/components/DonationPopup"
 import { PriceDisplayProvider, PriceWithUSD } from "@/components/PriceWithUSD"
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
+const eur = (n: number) => `${Math.round(n).toLocaleString("uk-UA")} €`
 
 type IncomePeriod = "annual" | "monthly"
 
@@ -178,6 +180,11 @@ export default function Home() {
   const grossAnnual = incomePeriod === "annual" ? incomeAmount : incomeAmount * 12
   const result = calcAll({ grossAnnual, activityYear, hasNHR, coefficient, deductions })
   const displayMode: "freelancer" | "nhr" = result.bestMode
+  const isNhrApplied = hasNHR && displayMode === "nhr"
+  const nhrNetDifference = Math.abs(result.netNHR - result.netFreelancer)
+  const nhrExplanation = isNhrApplied
+    ? `NHR застосовується, бо при поточному доході та налаштуваннях він дає більший net, ніж режим Freelancer. Різниця: приблизно ${eur(nhrNetDifference)} на рік.`
+    : `NHR увімкнений, але зараз не застосовується, бо режим Freelancer дає більший або такий самий net при поточному доході, відрахуваннях і типі активності. Різниця: приблизно ${eur(nhrNetDifference)} на рік.`
   const netAnnual = displayMode === "nhr" ? result.netNHR : result.netFreelancer
   const displayDivisor = incomePeriod === "annual" ? 1 : 12
   const inputMax = incomePeriod === "annual" ? 300000 : 25000
@@ -194,6 +201,7 @@ export default function Home() {
     <PriceDisplayProvider showUSD={showUSD} setShowUSD={setShowUSD}>
       <div className="gradient-hero min-h-screen">
         <Header showUSD={showUSD} setShowUSD={setShowUSD} />
+        <DonationPopup />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
@@ -387,31 +395,16 @@ export default function Home() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* Main result with accent line */}
-            <Card className="relative shadow-lg border-border/60 overflow-hidden">
-              <div className="absolute inset-y-0 left-0 w-2 bg-primary" />
+            <Card className={`relative shadow-lg overflow-hidden ${isNhrApplied ? "border-amber-500/50" : "border-border/60"}`}>
+              <div className={`absolute inset-y-0 left-0 w-2 ${isNhrApplied ? "bg-amber-500" : "bg-primary"}`} />
               <CardContent className="p-0">
                 <div>
                   <div className="py-3 pl-5 pr-3 sm:pl-7 sm:pr-4">
                     <div className="mx-auto flex max-w-3xl flex-col items-center gap-3">
                       {/* Income summary */}
                       <div className="w-full space-y-1 rounded-lg bg-muted/25 p-1">
-                        {(displayMode === "nhr" || result.familyQuotient > 1.0) && (
+                        {result.familyQuotient > 1.0 && (
                           <div className="flex justify-center gap-1.5 px-2 pt-1">
-                            {displayMode === "nhr" && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Badge className="bg-amber-500/15 text-amber-700 border border-amber-500/30 text-[10px] h-5 px-1.5 dark:text-amber-300">
-                                      NHR
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs text-xs">
-                                    NHR показується як активний режим тільки коли статус NHR увімкнений зліва
-                                    і при поточному доході та налаштуваннях дає більший net, ніж freelancer.
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
                             {result.familyQuotient > 1.0 && (
                               <Badge className="bg-emerald-600 text-white text-[10px] h-5 px-1.5" title={TOOLTIPS.familyQuotient}>
                                 Коеф. {result.familyQuotient.toFixed(2)}
@@ -439,10 +432,16 @@ export default function Home() {
                             <div
                               key={row.period}
                               className={`grid gap-2 rounded-lg px-2.5 py-2 sm:grid-cols-[0.7fr_1fr_1fr] sm:items-center ${
-                                isActive ? "bg-card shadow-sm ring-1 ring-primary/25" : "bg-transparent"
+                                isActive
+                                  ? `bg-card shadow-sm ring-1 ${isNhrApplied ? "ring-amber-500/35" : "ring-primary/25"}`
+                                  : "bg-transparent"
                               }`}
                             >
-                              <span className={`text-xs font-semibold uppercase tracking-widest ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+                              <span className={`text-xs font-semibold uppercase tracking-widest ${
+                                isActive
+                                  ? isNhrApplied ? "text-amber-700 dark:text-amber-300" : "text-primary"
+                                  : "text-muted-foreground"
+                              }`}>
                                 {row.label}
                               </span>
                               <div className="min-w-0 sm:text-right">
@@ -475,7 +474,7 @@ export default function Home() {
                           <span className="font-bold uppercase tracking-widest text-muted-foreground">
                             Ставка
                           </span>
-                          <span className="text-lg font-bold text-primary">
+                          <span className={`text-lg font-bold ${isNhrApplied ? "text-amber-700 dark:text-amber-300" : "text-primary"}`}>
                             {pct(displayMode === "nhr" ? result.effectiveRateNHR : result.effectiveRateFL)}
                           </span>
                         </div>
@@ -685,6 +684,19 @@ export default function Home() {
                     <BracketVisualizer taxableIncome={result.taxableBaseReduced} />
                   </TabsContent>
                 </Tabs>
+
+                {hasNHR && (
+                  <div className={`mt-5 rounded-lg border px-3 py-2 text-xs leading-5 ${
+                    isNhrApplied
+                      ? "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+                      : "border-border/60 bg-muted/30 text-muted-foreground"
+                  }`}>
+                    <p className="font-semibold">
+                      {isNhrApplied ? "NHR активний у розрахунку" : "NHR увімкнений, але не застосований"}
+                    </p>
+                    <p>{nhrExplanation}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

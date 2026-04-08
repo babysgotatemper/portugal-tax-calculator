@@ -136,6 +136,25 @@ export const UI = {
   },
 } as const
 
+export const DONATION = {
+  delayMs: 90_000,
+  storageKey: "pt-tax-calc-donation-dismissed",
+  title: "Сподобався сервіс?",
+  subtitle: "Віддяч донатом на ЗСУ",
+  description:
+    "Збір на ремонт авто для 1 БрОП. Кожен внесок допомагає швидше повернути техніку в роботу.",
+  imageSrc: "/donation-car.png",
+  imageAlt: "Збір на ремонт авто для 1 бригади оперативного призначення",
+  jarUrl: "https://send.monobank.ua/jar/4YDnCAEozU",
+  jarLabel: "Посилання на банку",
+  cardLabel: "Номер картки банки",
+  cardNumber: "5375 4112 0126 6736",
+  primaryAction: "Поповнити банку",
+  copyAction: "Скопіювати картку",
+  copiedAction: "Скопійовано",
+  closeLabel: "Закрити поп-ап з донатом",
+} as const
+
 // Tooltips
 export const TOOLTIPS = {
   grossIncome:
