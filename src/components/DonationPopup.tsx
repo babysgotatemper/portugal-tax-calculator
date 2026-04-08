@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Check, Copy, X } from "lucide-react"
 
 import { Button, buttonVariants } from "@/components/ui/button"
+import { trackEvent } from "@/lib/analytics"
 import { DONATION } from "@/lib/constants"
 
 export function DonationPopup() {
@@ -16,7 +17,10 @@ export function DonationPopup() {
       return
     }
 
-    const timer = window.setTimeout(() => setIsVisible(true), DONATION.delayMs)
+    const timer = window.setTimeout(() => {
+      setIsVisible(true)
+      trackEvent("donation_popup_view")
+    }, DONATION.delayMs)
 
     return () => window.clearTimeout(timer)
   }, [])
@@ -27,6 +31,7 @@ export function DonationPopup() {
 
   function closePopup() {
     window.sessionStorage.setItem(DONATION.storageKey, "true")
+    trackEvent("donation_popup_close")
     setIsVisible(false)
   }
 
@@ -34,6 +39,7 @@ export function DonationPopup() {
     try {
       await navigator.clipboard.writeText(DONATION.cardNumber.replaceAll(" ", ""))
       setIsCopied(true)
+      trackEvent("donation_card_copy")
       window.setTimeout(() => setIsCopied(false), 2000)
     } catch {
       setIsCopied(false)
@@ -89,6 +95,7 @@ export function DonationPopup() {
                 href={DONATION.jarUrl}
                 target="_blank"
                 rel="noreferrer"
+                onClick={() => trackEvent("donation_jar_link_click")}
                 className="break-all text-xs font-semibold text-primary underline-offset-4 hover:underline sm:text-sm"
               >
                 {DONATION.jarUrl}
@@ -110,6 +117,7 @@ export function DonationPopup() {
               href={DONATION.jarUrl}
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackEvent("donation_jar_button_click")}
               className={buttonVariants({ size: "lg", className: "h-9 sm:h-10" })}
             >
               {DONATION.primaryAction}

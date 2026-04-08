@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 import { Inter, Geist_Mono } from "next/font/google"
+import { Suspense } from "react"
+import { Analytics } from "@/components/Analytics"
 import { JsonLd } from "@/components/JsonLd"
 import "./globals.css"
 
@@ -97,6 +99,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <JsonLd />
+        <Suspense fallback={null}>
+          <Analytics />
+        </Suspense>
         {children}
       </body>
     </html>

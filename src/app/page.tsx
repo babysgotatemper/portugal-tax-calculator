@@ -22,6 +22,7 @@ import { CollapsibleRoot, CollapsibleTrigger, CollapsibleContent } from "@/compo
 import { AlertCircle, HelpCircle, Moon, Sun } from "lucide-react"
 import { calcAll, type DeductionInputs } from "@/lib/taxEngine"
 import { ACTIVITY_COEFFICIENTS } from "@/lib/brackets"
+import { incomeBucket, trackEvent } from "@/lib/analytics"
 import { UI, TOOLTIPS } from "@/lib/constants"
 import { ComparisonTable } from "@/components/ComparisonTable"
 import { BracketVisualizer } from "@/components/BracketVisualizer"
@@ -144,7 +145,11 @@ function Header({
           </Link>
           <button
             type="button"
-            onClick={() => setShowUSD(!showUSD)}
+            onClick={() => {
+              const nextShowUSD = !showUSD
+              setShowUSD(nextShowUSD)
+              trackEvent("usd_toggle", { enabled: nextShowUSD })
+            }}
             aria-pressed={showUSD}
             className={`inline-flex h-7 items-center gap-1 rounded-lg border px-2 text-[0.75rem] font-semibold transition-colors ${
               showUSD
@@ -193,8 +198,38 @@ export default function Home() {
 
   function changeIncomePeriod(nextPeriod: IncomePeriod) {
     if (nextPeriod === incomePeriod) return
+    trackEvent("income_period_change", {
+      from: incomePeriod,
+      to: nextPeriod,
+      income_bucket: incomeBucket(grossAnnual),
+    })
     setIncomeAmount((value) => nextPeriod === "annual" ? value * 12 : value / 12)
     setIncomePeriod(nextPeriod)
+  }
+
+  function changeActivityYear(nextYear: 1 | 2 | 3) {
+    setActivityYear(nextYear)
+    trackEvent("activity_year_change", {
+      year: nextYear,
+      income_bucket: incomeBucket(grossAnnual),
+    })
+  }
+
+  function changeNhr(nextHasNHR: boolean) {
+    setHasNHR(nextHasNHR)
+    trackEvent("nhr_toggle", {
+      enabled: nextHasNHR,
+      currently_applied: nextHasNHR && result.bestMode === "nhr",
+      income_bucket: incomeBucket(grossAnnual),
+    })
+  }
+
+  function changeActivityType(nextCoeffIdx: number) {
+    setCoeffIdx(nextCoeffIdx)
+    trackEvent("activity_type_change", {
+      coefficient: ACTIVITY_COEFFICIENTS[nextCoeffIdx].value,
+      income_bucket: incomeBucket(grossAnnual),
+    })
   }
 
   return (
@@ -281,7 +316,7 @@ export default function Home() {
                     {([1, 2, 3] as const).map((y) => (
                       <button
                         key={y}
-                        onClick={() => setActivityYear(y)}
+                        onClick={() => changeActivityYear(y)}
                         className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all border ${
                           activityYear === y
                             ? "bg-primary text-white border-primary"
@@ -305,7 +340,7 @@ export default function Home() {
                   <Switch
                     id="nhr"
                     checked={hasNHR}
-                    onCheckedChange={setHasNHR}
+                    onCheckedChange={changeNhr}
                     className="data-checked:bg-amber-500"
                   />
                   <div className="flex-1 flex items-center gap-2">
@@ -340,7 +375,7 @@ export default function Home() {
                     value={coeffIdx.toString()}
                     onValueChange={(val) => {
                       if (val !== null) {
-                        setCoeffIdx(parseInt(val))
+                        changeActivityType(parseInt(val))
                       }
                     }}
                   >
@@ -494,7 +529,16 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="overview">
+                <Tabs
+                  defaultValue="overview"
+                  onValueChange={(tab) => {
+                    trackEvent("tax_detail_tab_change", {
+                      tab,
+                      income_bucket: incomeBucket(grossAnnual),
+                      mode: displayMode,
+                    })
+                  }}
+                >
                   <TabsList className="w-full bg-muted border border-border/40">
                     <TabsTrigger value="overview" className="text-xs sm:text-sm">
                       Огляд
