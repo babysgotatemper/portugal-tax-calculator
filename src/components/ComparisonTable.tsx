@@ -1,22 +1,29 @@
 "use client"
 
 import { calcAll } from "@/lib/taxEngine"
+import type { DeductionInputs } from "@/lib/taxEngine"
+import { PriceWithUSD } from "@/components/PriceWithUSD"
 
 interface Props {
   grossAnnual: number
   hasNHR: boolean
   coefficient: number
+  deductions?: DeductionInputs
+  displayDivisor?: number
 }
-
-const fmt = (n: number) =>
-  n.toLocaleString("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
 
-export function ComparisonTable({ grossAnnual, hasNHR, coefficient }: Props) {
+export function ComparisonTable({
+  grossAnnual,
+  hasNHR,
+  coefficient,
+  deductions,
+  displayDivisor = 12,
+}: Props) {
   const years = [1, 2, 3] as const
   const rows = years.map((y) =>
-    calcAll({ grossAnnual, activityYear: y, hasNHR, coefficient })
+    calcAll({ grossAnnual, activityYear: y, hasNHR, coefficient, deductions })
   )
 
   return (
@@ -30,9 +37,9 @@ export function ComparisonTable({ grossAnnual, hasNHR, coefficient }: Props) {
               <th className="text-right py-3 px-2 font-semibold text-muted-foreground">IRS NHR</th>
             )}
             <th className="text-right py-3 px-2 font-semibold text-muted-foreground">Seg. Social</th>
-            <th className="text-right py-3 px-2 font-semibold text-muted-foreground">Net FL/міс</th>
+            <th className="text-right py-3 px-2 font-semibold text-muted-foreground">Net FL</th>
             {hasNHR && (
-              <th className="text-right py-3 px-2 font-semibold text-muted-foreground">Net NHR/міс</th>
+              <th className="text-right py-3 px-2 font-semibold text-muted-foreground">Net NHR</th>
             )}
             <th className="text-right py-3 pl-2 font-semibold text-muted-foreground">Ставка</th>
           </tr>
@@ -53,17 +60,23 @@ export function ComparisonTable({ grossAnnual, hasNHR, coefficient }: Props) {
                     {i === 0 && <span className="text-xs text-emerald-600 font-medium">Sem SS</span>}
                   </span>
                 </td>
-                <td className="py-3 px-2 text-right tabular-nums text-red-600">{fmt(r.irsFreelancer)}</td>
-                {hasNHR && (
-                  <td className="py-3 px-2 text-right tabular-nums text-orange-600">{fmt(r.irsNHR)}</td>
-                )}
-                <td className="py-3 px-2 text-right tabular-nums text-amber-600">{fmt(r.socialSecurity)}</td>
-                <td className={`py-3 px-2 text-right tabular-nums font-semibold ${!isNHRBetter ? "text-emerald-600" : "text-foreground"}`}>
-                  {fmt(r.netMonthlyFL)}
+                <td className="py-3 px-2 text-right tabular-nums text-red-600">
+                  <PriceWithUSD amountEUR={r.irsFreelancer / displayDivisor} />
                 </td>
                 {hasNHR && (
-                  <td className={`py-3 px-2 text-right tabular-nums font-semibold ${isNHRBetter ? "text-emerald-600" : "text-foreground"}`}>
-                    {fmt(r.netMonthlyNHR)}
+                  <td className="py-3 px-2 text-right tabular-nums text-orange-600">
+                    <PriceWithUSD amountEUR={r.irsNHR / displayDivisor} />
+                  </td>
+                )}
+                <td className="py-3 px-2 text-right tabular-nums text-amber-600">
+                  <PriceWithUSD amountEUR={r.socialSecurity / displayDivisor} />
+                </td>
+                <td className={`py-3 px-2 text-right tabular-nums font-semibold ${!isNHRBetter ? "text-emerald-600" : "text-foreground"}`}>
+                  <PriceWithUSD amountEUR={r.netFreelancer / displayDivisor} />
+                </td>
+                {hasNHR && (
+                  <td className={`py-3 px-2 text-right tabular-nums font-semibold ${isNHRBetter ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>
+                    <PriceWithUSD amountEUR={r.netNHR / displayDivisor} />
                   </td>
                 )}
                 <td className="py-3 pl-2 text-right tabular-nums text-muted-foreground">

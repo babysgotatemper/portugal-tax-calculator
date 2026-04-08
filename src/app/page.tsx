@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import type { ReactNode } from "react"
 import Link from "next/link"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -22,18 +23,44 @@ import { AlertCircle, HelpCircle, Moon, Sun } from "lucide-react"
 import { calcAll, type DeductionInputs } from "@/lib/taxEngine"
 import { ACTIVITY_COEFFICIENTS } from "@/lib/brackets"
 import { UI, TOOLTIPS } from "@/lib/constants"
-import { BreakdownBar } from "@/components/BreakdownBar"
 import { ComparisonTable } from "@/components/ComparisonTable"
 import { BracketVisualizer } from "@/components/BracketVisualizer"
 import { ReverseCalculator } from "@/components/ReverseCalculator"
 import { DeductionsPanel } from "@/components/DeductionsPanel"
-import { useExchangeRate } from "@/components/ExchangeRateToast"
-import { PriceWithUSD } from "@/components/PriceWithUSD"
-
-const fmtDec = (n: number) =>
-  n.toLocaleString("uk-UA", { style: "currency", currency: "EUR", maximumFractionDigits: 2 })
+import { PriceDisplayProvider, PriceWithUSD } from "@/components/PriceWithUSD"
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
+
+type IncomePeriod = "annual" | "monthly"
+
+const periodLabel = {
+  annual: "рік",
+  monthly: "місяць",
+} satisfies Record<IncomePeriod, string>
+
+function SegmentButton({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean
+  children: ReactNode
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-all ${
+        active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border/40 bg-muted text-foreground hover:bg-muted/80"
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
 
 function TooltipIcon({ text }: { text: string }) {
   return (
@@ -80,7 +107,13 @@ function ThemeToggle() {
   )
 }
 
-function Header() {
+function Header({
+  showUSD,
+  setShowUSD,
+}: {
+  showUSD: boolean
+  setShowUSD: (showUSD: boolean) => void
+}) {
   return (
     <header className="border-b border-border/60 bg-background/75 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
@@ -100,6 +133,25 @@ function Header() {
           >
             UI
           </Link>
+          <Link
+            href="/methodology"
+            className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-[0.8rem] font-medium transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <span className="sm:hidden">Метод</span>
+            <span className="hidden sm:inline">Методологія</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setShowUSD(!showUSD)}
+            aria-pressed={showUSD}
+            className={`inline-flex h-7 items-center gap-1 rounded-lg border px-2 text-[0.75rem] font-semibold transition-colors ${
+              showUSD
+                ? "border-primary/50 bg-primary/10 text-primary"
+                : "border-border/40 bg-muted/30 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            USD
+          </button>
           <ThemeToggle />
         </div>
       </div>
@@ -108,7 +160,9 @@ function Header() {
 }
 
 export default function Home() {
-  const [gross, setGross] = useState(100000)
+  const [incomeAmount, setIncomeAmount] = useState(100000)
+  const [incomePeriod, setIncomePeriod] = useState<IncomePeriod>("annual")
+  const [showUSD, setShowUSD] = useState(false)
   const [activityYear, setActivityYear] = useState<1 | 2 | 3>(1)
   const [hasNHR, setHasNHR] = useState(false)
   const [coeffIdx, setCoeffIdx] = useState(0)
@@ -121,17 +175,25 @@ export default function Home() {
   })
 
   const coefficient = ACTIVITY_COEFFICIENTS[coeffIdx].value
-  const result = calcAll({ grossAnnual: gross, activityYear, hasNHR, coefficient, deductions })
+  const grossAnnual = incomePeriod === "annual" ? incomeAmount : incomeAmount * 12
+  const result = calcAll({ grossAnnual, activityYear, hasNHR, coefficient, deductions })
   const displayMode: "freelancer" | "nhr" = result.bestMode
-  const mainResult = displayMode === "nhr" ? result.netMonthlyNHR : result.netMonthlyFL
-  const totalTaxes = displayMode === "nhr" ? result.totalTaxNHR : result.totalTaxFL
+  const netAnnual = displayMode === "nhr" ? result.netNHR : result.netFreelancer
+  const displayDivisor = incomePeriod === "annual" ? 1 : 12
+  const inputMax = incomePeriod === "annual" ? 300000 : 25000
+  const inputMin = incomePeriod === "annual" ? 10000 : 1000
+  const inputStep = incomePeriod === "annual" ? 1000 : 250
 
-  // Get live exchange rate for consistent conversion
-  const { rate } = useExchangeRate()
+  function changeIncomePeriod(nextPeriod: IncomePeriod) {
+    if (nextPeriod === incomePeriod) return
+    setIncomeAmount((value) => nextPeriod === "annual" ? value * 12 : value / 12)
+    setIncomePeriod(nextPeriod)
+  }
 
   return (
-    <div className="gradient-hero min-h-screen">
-      <Header />
+    <PriceDisplayProvider showUSD={showUSD} setShowUSD={setShowUSD}>
+      <div className="gradient-hero min-h-screen">
+        <Header showUSD={showUSD} setShowUSD={setShowUSD} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
@@ -154,30 +216,46 @@ export default function Home() {
             <Card className="shadow-lg border-border/60 sticky top-8">
               <CardContent className="pt-6 space-y-5">
 
-                {/* Gross input */}
-                <div className="space-y-3">
+                {/* Income input */}
+                <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
-                      {UI.inputs.grossLabel}
+                      Дохід
                     </Label>
                     <TooltipIcon text={TOOLTIPS.grossIncome} />
                   </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <SegmentButton
+                      active={incomePeriod === "annual"}
+                      onClick={() => changeIncomePeriod("annual")}
+                    >
+                      На рік
+                    </SegmentButton>
+                    <SegmentButton
+                      active={incomePeriod === "monthly"}
+                      onClick={() => changeIncomePeriod("monthly")}
+                    >
+                      На місяць
+                    </SegmentButton>
+                  </div>
+
                   <input
                     type="number"
-                    value={gross}
-                    onChange={(e) => setGross(Number(e.target.value))}
+                    value={Math.round(incomeAmount)}
+                    onChange={(e) => setIncomeAmount(Number(e.target.value))}
                     className="w-full px-4 py-3 bg-muted border border-border/40 rounded-lg text-lg font-semibold text-foreground"
                   />
                   <Slider
-                    min={10000}
-                    max={300000}
-                    step={1000}
-                    value={[gross]}
-                    onValueChange={(v) => setGross(Array.isArray(v) ? v[0] : v)}
+                    min={inputMin}
+                    max={inputMax}
+                    step={inputStep}
+                    value={[incomeAmount]}
+                    onValueChange={(v) => setIncomeAmount(Array.isArray(v) ? v[0] : v)}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>€10k</span>
-                    <span>€300k</span>
+                    <span>{inputMin.toLocaleString("uk-UA")} €</span>
+                    <span>{inputMax.toLocaleString("uk-UA")} €</span>
                   </div>
                 </div>
 
@@ -209,12 +287,34 @@ export default function Home() {
                 </div>
 
                 {/* NHR */}
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/40">
-                  <Switch id="nhr" checked={hasNHR} onCheckedChange={setHasNHR} />
+                <div
+                  className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
+                    hasNHR
+                      ? "border-amber-500/50 bg-amber-500/10"
+                      : "border-border/40 bg-muted/50"
+                  }`}
+                >
+                  <Switch
+                    id="nhr"
+                    checked={hasNHR}
+                    onCheckedChange={setHasNHR}
+                    className="data-checked:bg-amber-500"
+                  />
                   <div className="flex-1 flex items-center gap-2">
-                    <Label htmlFor="nhr" className="cursor-pointer text-sm font-medium">
+                    <Label
+                      htmlFor="nhr"
+                      className={`cursor-pointer text-sm font-medium ${
+                        hasNHR ? "text-amber-700 dark:text-amber-400" : ""
+                      }`}
+                    >
                       {UI.inputs.nhrLabel}
-                      <span className="text-xs text-muted-foreground ml-1">({UI.inputs.nhrDescription})</span>
+                      <span
+                        className={`ml-1 text-xs ${
+                          hasNHR ? "text-amber-700/80 dark:text-amber-300/80" : "text-muted-foreground"
+                        }`}
+                      >
+                        ({UI.inputs.nhrDescription})
+                      </span>
                     </Label>
                     <TooltipIcon text={TOOLTIPS.nhr} />
                   </div>
@@ -267,8 +367,10 @@ export default function Home() {
 
                 {/* Deductions Panel */}
                 <CollapsibleRoot defaultOpen={false}>
-                  <CollapsibleTrigger>{UI.deductions.sectionLabel}</CollapsibleTrigger>
-                  <CollapsibleContent>
+                  <CollapsibleTrigger className="rounded-lg border border-border/40 bg-muted/30 px-3 py-2 text-sm">
+                    {UI.deductions.sectionLabel}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="data-open:pt-3 [&>div]:px-0 [&>div]:py-0">
                     <DeductionsPanel
                       deductions={deductions}
                       onChange={setDeductions}
@@ -276,20 +378,6 @@ export default function Home() {
                     />
                   </CollapsibleContent>
                 </CollapsibleRoot>
-
-                <Separator />
-
-                {/* Info box */}
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1.5">
-                  <p className="text-xs font-bold text-primary uppercase tracking-wider">
-                    {UI.inputs.guideLabel}
-                  </p>
-                  <ul className="text-[11px] text-muted-foreground space-y-1">
-                    {UI.inputs.guide.map((item, i) => (
-                      <li key={i}>• {item}</li>
-                    ))}
-                  </ul>
-                </div>
 
               </CardContent>
             </Card>
@@ -303,48 +391,74 @@ export default function Home() {
               <div className="absolute inset-y-0 left-0 w-2 bg-primary" />
               <CardContent className="p-0">
                 <div>
-                  <div className="px-8 py-6 pl-10">
-                    <div className="flex items-center justify-between gap-6">
-                      {/* Label */}
-                      <div className="flex items-center gap-2 min-w-max">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                          {UI.results.monthlyNetTitle}
-                        </p>
-                        <TooltipIcon text={TOOLTIPS.netIncome} />
-                      </div>
+                  <div className="py-3 pl-5 pr-3 sm:pl-7 sm:pr-4">
+                    <div className="mx-auto flex max-w-3xl flex-col items-center gap-3">
+                      {/* Income summary */}
+                      <div className="w-full space-y-1 rounded-lg bg-muted/25 p-1">
+                        {[
+                          {
+                            label: "За рік",
+                            period: "annual" as const,
+                            net: netAnnual,
+                            gross: grossAnnual,
+                          },
+                          {
+                            label: "За місяць",
+                            period: "monthly" as const,
+                            net: netAnnual / 12,
+                            gross: grossAnnual / 12,
+                          },
+                        ].map((row) => {
+                          const isActive = incomePeriod === row.period
 
-                      {/* Main amount */}
-                      <div className="flex items-baseline gap-2 flex-1 justify-center">
-                        <div className="text-4xl font-bold text-primary leading-none">
-                          {(mainResult).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          ≈ ${(mainResult * rate).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
-                        </div>
-                      </div>
-
-                      {/* Gross & Rate */}
-                      <div className="flex items-center gap-8 min-w-max">
-                        <div>
-                          <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-1">
-                            Валовий
-                          </p>
-                          <p className="text-lg font-bold text-foreground">
-                            {(gross / 12).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}€
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-1">
+                          return (
+                            <div
+                              key={row.period}
+                              className={`grid gap-2 rounded-lg px-2.5 py-2 sm:grid-cols-[0.7fr_1fr_1fr] sm:items-center ${
+                                isActive ? "bg-card shadow-sm ring-1 ring-primary/25" : "bg-transparent"
+                              }`}
+                            >
+                              <span className={`text-xs font-semibold uppercase tracking-widest ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+                                {row.label}
+                              </span>
+                              <div className="min-w-0 sm:text-right">
+                                <span className="mb-0.5 block text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                                  Net
+                                </span>
+                                <PriceWithUSD
+                                  amountEUR={row.net}
+                                  showFull={isActive}
+                                  maximumFractionDigits={0}
+                                  className="items-start sm:items-end"
+                                  amountClassName={isActive ? "text-2xl leading-none" : "text-sm text-foreground"}
+                                />
+                              </div>
+                              <div className="min-w-0 sm:text-right">
+                                <span className="mb-0.5 block text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                                  Gross
+                                </span>
+                                <PriceWithUSD
+                                  amountEUR={row.gross}
+                                  maximumFractionDigits={0}
+                                  className="items-start sm:items-end"
+                                  amountClassName="text-sm text-foreground"
+                                />
+                              </div>
+                            </div>
+                          )
+                        })}
+                        <div className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs">
+                          <span className="font-bold uppercase tracking-widest text-muted-foreground">
                             Ставка
-                          </p>
-                          <p className="text-lg font-bold text-primary">
+                          </span>
+                          <span className="text-lg font-bold text-primary">
                             {pct(displayMode === "nhr" ? result.effectiveRateNHR : result.effectiveRateFL)}
-                          </p>
+                          </span>
                         </div>
                       </div>
 
                       {/* Badges */}
-                      <div className="flex gap-2 ml-auto">
+                      <div className="flex w-full justify-center gap-2">
                         {displayMode === "nhr" && (
                           <Badge className="bg-amber-500 text-white text-xs h-fit">
                             {UI.results.nhrBadge}
@@ -362,148 +476,199 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Tax Details & Tax Burden - Combined Collapsible */}
-            <Card className="shadow-lg border-border/60 overflow-hidden">
-              <CollapsibleRoot defaultOpen={true}>
-                <CollapsibleTrigger className="border-b border-border/40">
-                  {UI.results.taxBurdenTitle} & {UI.results.detailsTitle}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="px-0! py-0!">
-                  <div className="space-y-6 p-6">
-                    {/* Monthly Breakdown */}
+            <Card className="shadow-lg border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Податки та деталізація</CardTitle>
+                <CardDescription className="text-xs">
+                  Дані показані за {periodLabel[incomePeriod]}, шкала рахується від річного gross.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="overview">
+                  <TabsList className="w-full bg-muted border border-border/40">
+                    <TabsTrigger value="overview" className="text-xs sm:text-sm">
+                      Огляд
+                    </TabsTrigger>
+                    <TabsTrigger value="reverse" className="text-xs sm:text-sm">
+                      {UI.tabs.reverse}
+                    </TabsTrigger>
+                    <TabsTrigger value="years" className="text-xs sm:text-sm">
+                      По роках
+                    </TabsTrigger>
+                    <TabsTrigger value="brackets" className="text-xs sm:text-sm">
+                      Шкала ПДФО
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview" className="mt-5">
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold">
-                          {UI.results.detailsTitle}
-                        </h3>
-                        <TooltipIcon text={TOOLTIPS.taxBurden} />
-                      </div>
-                      <div className="space-y-1">
+                      <div className="mx-auto flex h-3 max-w-2xl overflow-hidden rounded-full bg-muted">
                         {[
                           {
-                            label: UI.results.grossIncome,
-                            value: gross / 12,
-                            color: "text-foreground",
+                            label: UI.results.totalNet,
+                            value: displayMode === "nhr" ? result.netNHR : result.netFreelancer,
+                            color: "bg-emerald-500",
                           },
                           {
                             label: UI.results.pdfoPD,
-                            value: (displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12,
-                            color: "text-red-600 dark:text-red-400",
+                            value: displayMode === "nhr" ? result.irsNHR : result.irsFreelancer,
+                            color: "bg-red-500",
                           },
                           {
                             label: UI.results.socialContribution,
-                            value: result.socialSecurity / 12,
-                            color: "text-amber-600 dark:text-amber-400",
+                            value: result.socialSecurity,
+                            color: "bg-amber-500",
                           },
                           {
                             label: UI.results.solidarityTax,
-                            value: (displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12,
+                            value: displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL,
+                            color: "bg-orange-500",
+                          },
+                        ].map((segment) =>
+                          segment.value > 0 ? (
+                            <div
+                              key={segment.label}
+                              className={segment.color}
+                              style={{ width: `${(segment.value / grossAnnual) * 100}%` }}
+                              title={`${segment.label}: ${pct(segment.value / grossAnnual)}`}
+                            />
+                          ) : null
+                        )}
+                      </div>
+                      <div className="flex flex-wrap justify-center gap-1.5">
+                        {[
+                          {
+                            label: "Net / Gross",
+                            value: {
+                              net: (displayMode === "nhr" ? result.netNHR : result.netFreelancer) / displayDivisor,
+                              gross: grossAnnual / displayDivisor,
+                            },
+                            share: (displayMode === "nhr" ? result.netNHR : result.netFreelancer) / grossAnnual,
+                            color: "text-emerald-600 dark:text-emerald-400",
+                            chip: "border-emerald-500/25 bg-emerald-500/10",
+                          },
+                          {
+                            label: UI.results.pdfoPD,
+                            value: (displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / displayDivisor,
+                            share: (displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / grossAnnual,
+                            color: "text-red-600 dark:text-red-400",
+                            chip: "border-red-500/25 bg-red-500/10",
+                            tooltip: TOOLTIPS.pdfo,
+                          },
+                          {
+                            label: UI.results.socialContribution,
+                            value: result.socialSecurity / displayDivisor,
+                            share: result.socialSecurity / grossAnnual,
+                            color: "text-amber-600 dark:text-amber-400",
+                            chip: "border-amber-500/25 bg-amber-500/10",
+                            tooltip: TOOLTIPS.socialContribution,
+                          },
+                          {
+                            label: UI.results.solidarityTax,
+                            value: (displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / displayDivisor,
+                            share: (displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / grossAnnual,
                             color: "text-orange-500",
+                            chip: "border-orange-500/25 bg-orange-500/10",
                           },
                           ...(result.totalDeduction > 0 && displayMode === "freelancer" ? [{
                             label: UI.deductions.totalLabel,
-                            value: -result.totalDeduction / 12,
+                            value: -result.totalDeduction / displayDivisor,
+                            share: result.totalDeduction / grossAnnual,
                             color: "text-emerald-600 dark:text-emerald-400",
+                            chip: "border-emerald-500/25 bg-emerald-500/10",
                           }] : []),
-                        ].map((row) => (
-                          <div
-                            key={row.label}
-                            className="flex justify-between items-center py-1 border-b border-border/40 last:border-0"
-                          >
-                            <span className="text-xs text-muted-foreground">{row.label}</span>
-                            <div className={`${row.color} text-xs`}>
-                              <PriceWithUSD amountEUR={row.value} />
+                        ].map((row) => {
+                          const compoundValue = typeof row.value === "object" ? row.value : null
+                          const isEmpty = compoundValue
+                            ? compoundValue.net === 0 && compoundValue.gross === 0
+                            : row.value === 0
+
+                          return (
+                            <div
+                              key={row.label}
+                              className={`relative inline-flex min-w-34 flex-col rounded-lg border px-2.5 py-1.5 pb-4 ${
+                                isEmpty ? "border-border/40 bg-muted/20 opacity-60" : row.chip
+                              }`}
+                            >
+                              <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                                {row.label}
+                                {"tooltip" in row && row.tooltip ? (
+                                  <TooltipIcon text={row.tooltip} />
+                                ) : null}
+                              </span>
+                              {compoundValue ? (
+                                <div className="mt-1.5 text-xs leading-tight">
+                                  <div className={`flex items-baseline ${isEmpty ? "text-muted-foreground" : row.color}`}>
+                                    <span className="mr-1 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                                      Net
+                                    </span>
+                                    <PriceWithUSD
+                                      amountEUR={compoundValue.net}
+                                      className="min-h-0"
+                                      reserveUSDSpace={false}
+                                    />
+                                  </div>
+                                  <div className={`flex items-baseline ${isEmpty ? "text-muted-foreground" : "text-foreground"}`}>
+                                    <span className="mr-1 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                                      Gross
+                                    </span>
+                                    <PriceWithUSD
+                                      amountEUR={compoundValue.gross}
+                                      className="min-h-0"
+                                      reserveUSDSpace={false}
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className={`${isEmpty ? "text-muted-foreground" : row.color} mt-1 text-xs`}>
+                                  <PriceWithUSD amountEUR={typeof row.value === "number" ? row.value : 0} />
+                                </div>
+                              )}
+                              <span className="absolute bottom-1 right-2 text-[9px] text-muted-foreground">
+                                {pct(row.share)}
+                              </span>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
+
                       {result.familyQuotient > 1.0 && (
-                        <div className="flex justify-between items-center py-2 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 text-xs">
+                        <div className="mx-auto flex max-w-xl justify-between items-center gap-3 rounded-lg bg-emerald-50 px-2 py-2 text-xs border border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/40">
                           <span className="text-emerald-700 dark:text-emerald-400 font-medium">
                             Сімейний коефіцієнт: {result.familyQuotient.toFixed(2)}
                           </span>
-                          <span className="text-emerald-600 dark:text-emerald-500 text-[10px]">
+                          <span className="text-right text-[10px] text-emerald-600 dark:text-emerald-500">
                             {TOOLTIPS.familyQuotient}
                           </span>
                         </div>
                       )}
-                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-2 flex justify-between items-center">
-                        <span className="font-bold text-primary uppercase text-[10px] tracking-wider">
-                          {UI.results.totalNet}
-                        </span>
-                        <div className="text-primary text-xs">
-                          <PriceWithUSD amountEUR={mainResult} showFull={true} />
-                        </div>
-                      </div>
                     </div>
+                  </TabsContent>
 
-                    <Separator />
+                  <TabsContent value="reverse" className="mt-5">
+                    <ReverseCalculator
+                      activityYear={activityYear}
+                      hasNHR={hasNHR}
+                      coefficient={coefficient}
+                      deductions={deductions}
+                    />
+                  </TabsContent>
 
-                    {/* Tax Burden */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold">
-                          {UI.results.taxBurdenTitle}
-                        </h3>
-                        <TooltipIcon text={TOOLTIPS.taxBurden} />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-muted-foreground">
-                            {UI.results.distribution}:
-                          </span>
-                          <div className="text-muted-foreground">
-                            <PriceWithUSD amountEUR={totalTaxes + result.socialSecurity} />
-                            <span className="ml-2">
-                              {pct((totalTaxes + result.socialSecurity) / gross)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex h-8 gap-0.5 rounded-lg overflow-hidden bg-muted">
-                          <div
-                            className="bg-emerald-500"
-                            style={{
-                              width: `${((displayMode === "nhr" ? result.netNHR : result.netFreelancer) / gross) * 100}%`,
-                            }}
-                            title={`${UI.results.totalNet}: ${fmtDec((displayMode === "nhr" ? result.netNHR : result.netFreelancer) / 12)}`}
-                          />
-                          <div
-                            className="bg-primary"
-                            style={{
-                              width: `${(result.socialSecurity / gross) * 100}%`,
-                            }}
-                            title={`${UI.results.socialContribution}: ${fmtDec(result.socialSecurity / 12)}`}
-                          />
-                          <div
-                            className="bg-red-500"
-                            style={{
-                              width: `${((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / gross) * 100}%`,
-                            }}
-                            title={`${UI.results.pdfoPD}: ${fmtDec((displayMode === "nhr" ? result.irsNHR : result.irsFreelancer) / 12)}`}
-                          />
-                          <div
-                            className="bg-orange-500"
-                            style={{
-                              width: `${((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / gross) * 100}%`,
-                            }}
-                            title={`${UI.results.solidarityTax}: ${fmtDec((displayMode === "nhr" ? result.solidarityNHR : result.solidarityFL) / 12)}`}
-                          />
-                        </div>
-                        <div className="flex flex-wrap gap-2 text-xs">
-                          {UI.results.legend.map((item) => (
-                            <div key={item.label} className="flex items-center gap-1.5">
-                              <div
-                                className={`w-2 h-2 rounded-full bg-${item.color}-500`}
-                              />
-                              <span>{item.label}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CollapsibleContent>
-              </CollapsibleRoot>
+                  <TabsContent value="years" className="mt-5">
+                    <ComparisonTable
+                      grossAnnual={grossAnnual}
+                      hasNHR={hasNHR}
+                      coefficient={coefficient}
+                      deductions={deductions}
+                      displayDivisor={displayDivisor}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="brackets" className="mt-5">
+                    <BracketVisualizer taxableIncome={result.taxableBaseReduced} />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
             </Card>
 
             {/* Warning if high tax bracket */}
@@ -529,100 +694,13 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ── Detailed Tabs ─────────────────────────────────── */}
-        <Tabs defaultValue="breakdown" className="mb-12">
-          <TabsList className="bg-muted border border-border/40">
-            <TabsTrigger value="breakdown" className="text-xs sm:text-sm">
-              {UI.tabs.distribution}
-            </TabsTrigger>
-            <TabsTrigger value="reverse" className="text-xs sm:text-sm">
-              {UI.tabs.reverse}
-            </TabsTrigger>
-            <TabsTrigger value="years" className="text-xs sm:text-sm">
-              {UI.tabs.years}
-            </TabsTrigger>
-            <TabsTrigger value="brackets" className="text-xs sm:text-sm">
-              {UI.tabs.brackets}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="breakdown" className="mt-4">
-            <Card className="shadow-lg border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">
-                  {UI.tabsContent.distributionTitle}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <BreakdownBar result={result} mode={displayMode} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="reverse" className="mt-4">
-            <Card className="shadow-lg border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">
-                  {UI.tabsContent.reverseTitle}
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  {UI.tabsContent.reverseHelper}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ReverseCalculator
-                  activityYear={activityYear}
-                  hasNHR={hasNHR}
-                  coefficient={coefficient}
-                  deductions={deductions}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="years" className="mt-4">
-            <Card className="shadow-lg border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">
-                  {UI.tabsContent.yearsTitle}
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  {UI.tabsContent.yearsHelper}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ComparisonTable
-                  grossAnnual={gross}
-                  hasNHR={hasNHR}
-                  coefficient={coefficient}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="brackets" className="mt-4">
-            <Card className="shadow-lg border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">
-                  {UI.tabsContent.bracketsTitle}
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  {UI.tabsContent.bracketsHelper}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <BracketVisualizer taxableIncome={result.taxableBaseReduced} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
         {/* ── Footer ───────────────────────────────────────────── */}
         <footer className="text-center py-8 border-t border-border/20 text-xs text-muted-foreground">
           <p>{UI.footer.copyright}</p>
         </footer>
 
-      </main>
-    </div>
+        </main>
+      </div>
+    </PriceDisplayProvider>
   )
 }

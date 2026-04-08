@@ -5,7 +5,6 @@ import { Slider } from "@/components/ui/slider"
 import { findRequiredGross } from "@/lib/reverseCalc"
 import { type DeductionInputs } from "@/lib/taxEngine"
 import { PriceWithUSD } from "@/components/PriceWithUSD"
-import { useExchangeRate } from "@/components/ExchangeRateToast"
 
 interface Props {
   activityYear: 1 | 2 | 3
@@ -16,10 +15,12 @@ interface Props {
 
 export function ReverseCalculator({ activityYear, hasNHR, coefficient, deductions }: Props) {
   const [targetNet, setTargetNet] = useState(5000)
-  const { rate } = useExchangeRate()
 
   const result = findRequiredGross(targetNet, activityYear, hasNHR, coefficient, deductions)
   const saving = result.grossFL - result.grossNHR
+  const nhrCardClassName = hasNHR
+    ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400"
+    : "border-border bg-muted/20 text-muted-foreground opacity-60"
 
   return (
     <div className="space-y-6">
@@ -27,12 +28,12 @@ export function ReverseCalculator({ activityYear, hasNHR, coefficient, deduction
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium">Бажаний net / місяць</span>
           <div>
-            <div className="text-2xl font-bold text-primary tabular-nums">
-              {(targetNet).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}€
-            </div>
-            <div className="text-xs text-muted-foreground tabular-nums">
-              ≈ ${(targetNet * rate).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
-            </div>
+            <PriceWithUSD
+              amountEUR={targetNet}
+              maximumFractionDigits={0}
+              className="items-end"
+              amountClassName="text-2xl font-bold text-primary"
+            />
           </div>
         </div>
         <Slider
@@ -56,12 +57,13 @@ export function ReverseCalculator({ activityYear, hasNHR, coefficient, deduction
             Freelancer режим
           </p>
           <div>
-            <p className="text-xl font-bold tabular-nums">
-              {(result.grossFL / 12).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}€
+            <p className="tabular-nums">
+              <PriceWithUSD
+                amountEUR={result.grossFL / 12}
+                maximumFractionDigits={0}
+                amountClassName="text-xl font-bold"
+              />
               <span className="text-sm font-normal text-muted-foreground ml-1">/міс</span>
-            </p>
-            <p className="text-[10px] text-muted-foreground tabular-nums">
-              ≈ ${(result.grossFL / 12 * rate).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
             </p>
           </div>
           <p className="text-xs text-muted-foreground border-t border-border/40 pt-1 mt-1">
@@ -70,35 +72,42 @@ export function ReverseCalculator({ activityYear, hasNHR, coefficient, deduction
         </div>
 
         {/* NHR режим */}
-        {hasNHR && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 p-4 space-y-2">
-            <p className="text-xs text-emerald-700 dark:text-emerald-400 uppercase tracking-wide font-medium">
+        <div className={`rounded-xl border p-4 space-y-2 ${nhrCardClassName}`}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs uppercase tracking-wide font-medium">
               NHR режим
             </p>
-            <div>
-              <p className="text-xl font-bold tabular-nums text-emerald-700 dark:text-emerald-400">
-                {(result.grossNHR / 12).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}€
-                <span className="text-sm font-normal text-emerald-600 dark:text-emerald-500 ml-1">/міс</span>
-              </p>
-              <p className="text-[10px] text-emerald-600 dark:text-emerald-500 tabular-nums">
-                ≈ ${(result.grossNHR / 12 * rate).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}
-              </p>
-            </div>
-            <p className="text-xs text-emerald-600 dark:text-emerald-500 border-t border-emerald-200 dark:border-emerald-800 pt-1 mt-1">
-              <span className="font-medium">Річно:</span> <PriceWithUSD amountEUR={result.grossNHR} />
+            {!hasNHR && (
+              <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] leading-4">
+                Неактивний: увімкніть NHR зліва
+              </span>
+            )}
+          </div>
+          <div>
+            <p className="tabular-nums">
+              <PriceWithUSD
+                amountEUR={result.grossNHR / 12}
+                maximumFractionDigits={0}
+                amountClassName="text-xl font-bold"
+              />
+              <span className="text-sm font-normal ml-1">/міс</span>
             </p>
           </div>
-        )}
+          <p className="text-xs border-t border-current/20 pt-1 mt-1">
+            <span className="font-medium">Річно:</span> <PriceWithUSD amountEUR={result.grossNHR} />
+          </p>
+        </div>
       </div>
 
       {/* Економія з NHR */}
       {hasNHR && saving > 0 && (
-        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 p-3 text-center">
-          <p className="text-sm text-emerald-700 dark:text-emerald-400">
-            З NHR можна заробляти <strong>{(saving).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}€/рік</strong> менше
-          </p>
-          <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">
-            ≈ <strong>${(saving * rate).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}</strong>/рік
+        <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-3 text-center">
+          <p className="text-sm text-amber-700 dark:text-amber-400">
+            З NHR можна заробляти{" "}
+            <strong>
+              <PriceWithUSD amountEUR={saving} maximumFractionDigits={0} /> / рік
+            </strong>{" "}
+            менше
           </p>
         </div>
       )}

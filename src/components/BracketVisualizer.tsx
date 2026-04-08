@@ -1,15 +1,11 @@
 "use client"
 
 import { TAX_BRACKETS } from "@/lib/brackets"
+import { PriceWithUSD } from "@/components/PriceWithUSD"
 
 interface Props {
   taxableIncome: number
 }
-
-const fmt = (n: number) =>
-  n === Infinity
-    ? "∞"
-    : n.toLocaleString("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })
 
 export function BracketVisualizer({ taxableIncome }: Props) {
   return (
@@ -39,7 +35,12 @@ export function BracketVisualizer({ taxableIncome }: Props) {
               />
             </div>
             <span className="text-xs text-muted-foreground whitespace-nowrap">
-              {fmt(b.min)} – {b.max === Infinity ? "∞" : fmt(b.max)}
+              <PriceWithUSD amountEUR={b.min} maximumFractionDigits={0} /> –{" "}
+              {b.max === Infinity ? (
+                "∞"
+              ) : (
+                <PriceWithUSD amountEUR={b.max} maximumFractionDigits={0} />
+              )}
             </span>
           </div>
         )

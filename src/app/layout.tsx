@@ -21,27 +21,37 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
 
   title: {
-    default: "Portugal Tax Calculator — IRS 2025",
+    default: "Portugal Tax Calculator — Freelancer, NHR, IRS 2025",
     template: "%s | PT Tax Calc",
   },
   description:
-    "Розрахуй свій net дохід як фрілансер або NHR резидент у Португалії. " +
-    "Прогресивна шкала IRS 2025, Segurança Social та NHR flat rate 20%.",
+    "Калькулятор податків у Португалії для фрілансерів, self-employed та NHR: " +
+    "net і gross дохід, IRS 2025, Segurança Social, solidarity surcharge, відрахування та USD еквівалент.",
   keywords: [
     "portugal tax calculator",
     "IRS 2025",
     "NHR portugal",
     "freelancer portugal taxes",
+    "self employed portugal tax",
     "segurança social",
     "portugal income tax",
+    "portugal freelancer calculator",
+    "portugal net salary calculator",
+    "gross net calculator portugal",
     "калькулятор податків португалія",
+    "податки фрілансер португалія",
+    "NHR португалія",
+    "IRS португалія 2025",
   ],
+  category: "finance",
   authors: [{ name: "PT Tax Calc" }],
   creator: "PT Tax Calc",
+  publisher: "PT Tax Calc",
 
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon.svg", type: "image/svg+xml" },
     ],
     apple: "/favicon.svg",
   },
@@ -50,18 +60,23 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE_URL,
     siteName: "PT Tax Calc",
-    title: "Portugal Tax Calculator — IRS 2025",
+    title: "Portugal Tax Calculator — Freelancer, NHR, IRS 2025",
     description:
-      "Freelancer та NHR режими: IRS, Segurança Social, ефективна ставка. " +
-      "Зворотній розрахунок та порівняння по роках.",
+      "Розрахунок net і gross доходу у Португалії: IRS 2025, Segurança Social, NHR 20%, " +
+      "податкові відрахування, effective tax rate та порівняння по роках.",
     locale: "uk_UA",
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "Portugal Tax Calculator — IRS 2025",
-    description: "Freelancer та NHR: IRS 2025, Seg. Social, net / місяць",
+    title: "Portugal Tax Calculator — Freelancer, NHR, IRS 2025",
+    description:
+      "Gross/net калькулятор для Португалії: freelancer, NHR, IRS 2025, Segurança Social і USD еквівалент.",
     creator: "@pttaxcalc",
+  },
+
+  alternates: {
+    canonical: SITE_URL,
   },
 
   robots: {

@@ -12,6 +12,7 @@ import {
 import { HelpCircle } from "lucide-react"
 import { DeductionInputs } from "@/lib/taxEngine"
 import { UI, TOOLTIPS } from "@/lib/constants"
+import { PriceWithUSD } from "@/components/PriceWithUSD"
 
 interface Props {
   deductions: DeductionInputs
@@ -41,9 +42,9 @@ export function DeductionsPanel({ deductions, onChange, totalDeduction }: Props)
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 rounded-lg border border-border/40 bg-muted/20 p-3">
       {/* Marital status */}
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
             {UI.family.statusLabel}
@@ -55,7 +56,7 @@ export function DeductionsPanel({ deductions, onChange, totalDeduction }: Props)
             <button
               key={s}
               onClick={() => updateDeduction("maritalStatus", s)}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all border ${
+              className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                 deductions.maritalStatus === s
                   ? "bg-primary text-white border-primary"
                   : "bg-muted border-border/40 text-foreground hover:bg-muted/80"
@@ -70,7 +71,7 @@ export function DeductionsPanel({ deductions, onChange, totalDeduction }: Props)
       <Separator />
 
       {/* Children count */}
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
             {UI.deductions.childrenLabel}
@@ -82,7 +83,7 @@ export function DeductionsPanel({ deductions, onChange, totalDeduction }: Props)
             <button
               key={n}
               onClick={() => updateDeduction("numChildren", n)}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all border ${
+              className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                 deductions.numChildren === n
                   ? "bg-primary text-white border-primary"
                   : "bg-muted border-border/40 text-foreground hover:bg-muted/80"
@@ -97,7 +98,7 @@ export function DeductionsPanel({ deductions, onChange, totalDeduction }: Props)
       <Separator />
 
       {/* Mortgage interest */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
             {UI.deductions.mortgageLabel}
@@ -108,7 +109,7 @@ export function DeductionsPanel({ deductions, onChange, totalDeduction }: Props)
           type="number"
           value={deductions.mortgageInterest}
           onChange={(e) => updateDeduction("mortgageInterest", Number(e.target.value))}
-          className="w-full px-4 py-3 bg-muted border border-border/40 rounded-lg text-lg font-semibold text-foreground"
+          className="w-full px-3 py-2 bg-muted border border-border/40 rounded-lg text-sm font-semibold text-foreground"
         />
         <Slider
           min={0}
@@ -124,7 +125,7 @@ export function DeductionsPanel({ deductions, onChange, totalDeduction }: Props)
       </div>
 
       {/* Health expenses */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
             {UI.deductions.healthLabel}
@@ -135,7 +136,7 @@ export function DeductionsPanel({ deductions, onChange, totalDeduction }: Props)
           type="number"
           value={deductions.healthExpenses}
           onChange={(e) => updateDeduction("healthExpenses", Number(e.target.value))}
-          className="w-full px-4 py-3 bg-muted border border-border/40 rounded-lg text-lg font-semibold text-foreground"
+          className="w-full px-3 py-2 bg-muted border border-border/40 rounded-lg text-sm font-semibold text-foreground"
         />
         <Slider
           min={0}
@@ -151,7 +152,7 @@ export function DeductionsPanel({ deductions, onChange, totalDeduction }: Props)
       </div>
 
       {/* Education expenses */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground uppercase tracking-widest font-bold">
             {UI.deductions.educationLabel}
@@ -162,7 +163,7 @@ export function DeductionsPanel({ deductions, onChange, totalDeduction }: Props)
           type="number"
           value={deductions.educationExpenses}
           onChange={(e) => updateDeduction("educationExpenses", Number(e.target.value))}
-          className="w-full px-4 py-3 bg-muted border border-border/40 rounded-lg text-lg font-semibold text-foreground"
+          className="w-full px-3 py-2 bg-muted border border-border/40 rounded-lg text-sm font-semibold text-foreground"
         />
         <Slider
           min={0}
@@ -186,7 +187,7 @@ export function DeductionsPanel({ deductions, onChange, totalDeduction }: Props)
             {UI.deductions.totalLabel}
           </span>
           <span className="text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
-            {(totalDeduction).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}€
+            <PriceWithUSD amountEUR={totalDeduction} maximumFractionDigits={0} />
           </span>
         </div>
       )}
